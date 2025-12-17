@@ -7,19 +7,26 @@ import (
 	"os"
 	"strconv"
 	"strigo/logging"
+	"time"
 )
 
 // Client gère les opérations réseau
-type Client struct{}
+type Client struct {
+	httpClient *http.Client
+}
 
 // NewClient crée une nouvelle instance de Client
 func NewClient() *Client {
-	return &Client{}
+	return &Client{
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
 }
 
 // GetFileSize récupère la taille d'un fichier distant
 func (c *Client) GetFileSize(url string) (int64, error) {
-	resp, err := http.Head(url)
+	resp, err := c.httpClient.Head(url)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get file size: %w", err)
 	}
@@ -40,7 +47,7 @@ func (c *Client) GetFileSize(url string) (int64, error) {
 // DownloadFile télécharge un fichier depuis une URL
 func (c *Client) DownloadFile(url, filepath string) error {
 	logging.LogDebug("📡 Initiating network request to %s", url)
-	resp, err := http.Get(url)
+	resp, err := c.httpClient.Get(url)
 	if err != nil {
 		return fmt.Errorf("network request failed: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -44,8 +45,9 @@ func (c *NexusClient) GetAvailableVersions(repo config.SDKRepository, registry c
 	apiURL := strings.ReplaceAll(registry.APIURL, "{repository}", repo.Repository)
 	logging.LogDebug("🔍 API URL after repository replacement: %s", apiURL)
 
-	// Build final request URL
-	requestURL := fmt.Sprintf("%s&path=%s", apiURL, repo.Path)
+	// Build final request URL with proper URL encoding
+	escapedPath := url.QueryEscape(repo.Path)
+	requestURL := fmt.Sprintf("%s&path=%s", apiURL, escapedPath)
 
 	logging.LogDebug("🔍 Final Nexus API URL: %s", requestURL)
 

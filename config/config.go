@@ -104,7 +104,13 @@ func LoadConfig() (*Config, error) {
 	// Apply temporary log level to filter PreLog()
 	logging.SetPreLogLevel(cfg.General.LogLevel)
 
-	logging.PreLog("DEBUG", "✅ Configuration successfully loaded.")
+	// Valider la configuration
+	if err := cfg.Validate(); err != nil {
+		logging.PreLog("ERROR", "❌ Configuration validation failed: %v", err)
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	logging.PreLog("DEBUG", "✅ Configuration successfully loaded and validated.")
 	return &cfg, nil
 }
 

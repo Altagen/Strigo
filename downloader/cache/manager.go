@@ -1,7 +1,9 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strigo/logging"
@@ -61,7 +63,10 @@ func (m *Manager) isDirEmpty(path string) (bool, error) {
 
 	_, err = f.Readdirnames(1)
 	if err == nil {
-		return false, nil
+		return false, nil // Répertoire non vide
 	}
-	return err.Error() == "EOF", nil
+	if errors.Is(err, io.EOF) {
+		return true, nil // Répertoire vide
+	}
+	return false, fmt.Errorf("failed to check if directory is empty: %w", err)
 }
