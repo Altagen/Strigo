@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strigo/config"
 	"strigo/logging"
 
@@ -11,6 +12,22 @@ import (
 // Global config variable
 var cfg *config.Config
 
+// Global flags
+var configFile string
+var patternsFile string
+
+// GetPatternsFilePath returns the patterns file path with priority resolution
+// Priority: CLI flag > env var > config value
+func GetPatternsFilePath() string {
+	if patternsFile != "" {
+		return patternsFile
+	}
+	if envPath := os.Getenv("STRIGO_PATTERNS_PATH"); envPath != "" {
+		return envPath
+	}
+	return cfg.General.PatternsFile
+}
+
 // Root command
 var rootCmd = &cobra.Command{
 	Use:           "strigo",
@@ -19,9 +36,9 @@ var rootCmd = &cobra.Command{
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Load configuration
+		// Load configuration with optional config file override
 		var err error
-		cfg, err = config.LoadConfig()
+		cfg, err = config.LoadConfig(configFile)
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}
@@ -56,6 +73,8 @@ func init() {
 	rootCmd.Flags().SetInterspersed(true)
 
 	// Add flags
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to configuration file (default: STRIGO_CONFIG_PATH or ./strigo.toml)")
+	rootCmd.PersistentFlags().StringVarP(&patternsFile, "patterns", "p", "", "Path to patterns file (default: STRIGO_PATTERNS_PATH or config value)")
 	rootCmd.PersistentFlags().BoolVarP(&jsonOutput, "json", "j", false, "Output in JSON format")
 	rootCmd.PersistentFlags().BoolVar(&jsonLogs, "json-logs", false, "Output logs in JSON format")
 }

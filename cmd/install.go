@@ -90,7 +90,7 @@ func handleInstall(sdkType, distribution, version string) error {
 	}
 
 	// Fetch available versions with filter
-	assets, err := repository.FetchAvailableVersions(sdkRepo, registry, version, true, cfg.General.PatternsFile) // true to remove display
+	assets, err := repository.FetchAvailableVersions(sdkRepo, registry, version, true, GetPatternsFilePath()) // true to remove display
 	if err != nil {
 		logging.LogError("❌ Failed to fetch versions: %v", err)
 		return fmt.Errorf("failed to fetch versions: %w", err)

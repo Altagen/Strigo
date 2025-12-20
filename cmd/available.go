@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strigo/config"
 	"strigo/logging"
 	"strigo/repository"
 	"strigo/repository/version"
@@ -32,40 +31,10 @@ Examples:
   strigo available jdk temurin     # List all Temurin JDK versions
   strigo available jdk temurin 11  # List Temurin JDK versions containing "11"`,
 	Args: func(cmd *cobra.Command, args []string) error {
-		// Load configuration before validation
-		var err error
-		cfg, err = config.LoadConfig()
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-
+		// Simple validation - config is not loaded yet
 		if len(args) > 3 {
 			return fmt.Errorf("too many arguments. Use 'strigo available --help' for usage")
 		}
-
-		if len(args) == 0 {
-			return nil
-		}
-
-		// Validate SDK type
-		sdkType := args[0]
-		validTypes := getValidSDKTypes()
-		if !contains(validTypes, sdkType) {
-			return fmt.Errorf("invalid SDK type '%s'. Available types: %s", sdkType, strings.Join(validTypes, ", "))
-		}
-
-		if len(args) == 1 {
-			return nil
-		}
-
-		// Validate distribution
-		distribution := args[1]
-		validDists := getValidDistributions(sdkType)
-		if !contains(validDists, distribution) {
-			return fmt.Errorf("invalid distribution '%s' for type '%s'. Available distributions: %s",
-				distribution, sdkType, strings.Join(validDists, ", "))
-		}
-
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -82,12 +51,26 @@ Examples:
 
 		sdkType := args[0]
 
+		// Validate SDK type
+		validTypes := getValidSDKTypes()
+		if !contains(validTypes, sdkType) {
+			return fmt.Errorf("invalid SDK type '%s'. Available types: %s", sdkType, strings.Join(validTypes, ", "))
+		}
+
 		// If only type is provided, display distributions
 		if len(args) == 1 {
 			return handleTypeOnly(sdkType, output)
 		}
 
 		distribution := args[1]
+
+		// Validate distribution
+		validDists := getValidDistributions(sdkType)
+		if !contains(validDists, distribution) {
+			return fmt.Errorf("invalid distribution '%s' for type '%s'. Available distributions: %s",
+				distribution, sdkType, strings.Join(validDists, ", "))
+		}
+
 		var versionFilter string
 		if len(args) > 2 {
 			versionFilter = args[2]
@@ -202,7 +185,7 @@ func handleFullCommand(sdkType, distribution, versionFilter string, output *Avai
 	}
 
 	// Fetch available versions
-	versions, err := repository.FetchAvailableVersions(sdkRepo, registry, "", true, cfg.General.PatternsFile)
+	versions, err := repository.FetchAvailableVersions(sdkRepo, registry, "", true, GetPatternsFilePath())
 	if err != nil {
 		logging.LogError("❌ %v", err)
 		return nil
