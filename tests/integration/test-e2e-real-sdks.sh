@@ -257,7 +257,7 @@ log_level = "debug"
 sdk_install_dir = "$TEST_INSTALL_DIR"
 cache_dir = "$TEST_CACHE_DIR"
 keep_cache = false
-patterns_file = "$PROJECT_ROOT/repository/version/patterns/builtin.toml"
+patterns_file = "$PROJECT_ROOT/strigo-patterns.toml"
 jdk_security_path = "lib/security/cacerts"
 system_cacerts_path = "/etc/ssl/certs/ca-certificates.crt"
 

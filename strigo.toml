@@ -6,11 +6,11 @@ log_path = ""
 keep_cache = false
 shell_config_path = ""
 
-# Version patterns configuration
-# You can customize this to point to your own patterns file
-# Default: strigopatterns.toml (in the same directory as strigo.toml)
+# Version patterns configuration (REQUIRED)
+# This file defines regex patterns for extracting versions from SDK paths
+# You can copy strigo-patterns.toml from the Strigo repository or create your own
 # You can also use STRIGO_PATTERNS_PATH environment variable to override
-patterns_file = ""  # Empty = use default (strigopatterns.toml)
+patterns_file = "strigo-patterns.toml"
 
 # Java certificates paths
 jdk_security_path = "lib/security/cacerts"        # Relative path in JDK
