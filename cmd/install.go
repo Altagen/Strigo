@@ -90,7 +90,7 @@ func handleInstall(sdkType, distribution, version string) error {
 	}
 
 	// Fetch available versions with filter
-	assets, err := repository.FetchAvailableVersions(sdkRepo, registry, version, true) // true to remove display
+	assets, err := repository.FetchAvailableVersions(sdkRepo, registry, version, true, cfg.General.PatternsFile) // true to remove display
 	if err != nil {
 		logging.LogError("❌ Failed to fetch versions: %v", err)
 		return fmt.Errorf("failed to fetch versions: %w", err)
@@ -138,8 +138,15 @@ func handleInstall(sdkType, distribution, version string) error {
 		SystemCacertsPath: cfg.General.SystemCacertsPath,
 	}
 
-	// Download and extract
-	manager := downloader.NewManager()
+	// Download and extract - create manager with auth if credentials are provided
+	var manager *downloader.Manager
+	if registry.Username != "" && registry.Password != "" {
+		logging.LogDebug("🔐 Creating download manager with authentication")
+		manager = downloader.NewManagerWithAuth(registry.Username, registry.Password)
+	} else {
+		manager = downloader.NewManager()
+	}
+
 	opts := core.DownloadOptions{
 		DownloadURL:  matchedAsset.DownloadUrl,
 		CacheDir:     cfg.General.CacheDir,
@@ -149,6 +156,8 @@ func handleInstall(sdkType, distribution, version string) error {
 		Version:      version,
 		KeepCache:    cfg.General.KeepCache,
 		CertConfig:   certConfig,
+		Username:     registry.Username,
+		Password:     registry.Password,
 	}
 	err = manager.DownloadAndExtract(opts)
 

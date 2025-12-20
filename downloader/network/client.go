@@ -10,12 +10,14 @@ import (
 	"time"
 )
 
-// Client gère les opérations réseau
+// Client handles network operations
 type Client struct {
 	httpClient *http.Client
+	username   string
+	password   string
 }
 
-// NewClient crée une nouvelle instance de Client
+// NewClient creates a new Client instance without authentication
 func NewClient() *Client {
 	return &Client{
 		httpClient: &http.Client{
@@ -24,9 +26,31 @@ func NewClient() *Client {
 	}
 }
 
-// GetFileSize récupère la taille d'un fichier distant
+// NewClientWithAuth creates a new Client instance with HTTP Basic Authentication
+func NewClientWithAuth(username, password string) *Client {
+	return &Client{
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		username: username,
+		password: password,
+	}
+}
+
+// GetFileSize retrieves the size of a remote file
 func (c *Client) GetFileSize(url string) (int64, error) {
-	resp, err := c.httpClient.Head(url)
+	req, err := http.NewRequest("HEAD", url, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add Basic Auth if credentials are provided
+	if c.username != "" && c.password != "" {
+		req.SetBasicAuth(c.username, c.password)
+		logging.LogDebug("🔐 Using Basic Auth for file size check")
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get file size: %w", err)
 	}
@@ -44,10 +68,22 @@ func (c *Client) GetFileSize(url string) (int64, error) {
 	return size, nil
 }
 
-// DownloadFile télécharge un fichier depuis une URL
+// DownloadFile downloads a file from a URL
 func (c *Client) DownloadFile(url, filepath string) error {
 	logging.LogDebug("📡 Initiating network request to %s", url)
-	resp, err := c.httpClient.Get(url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add Basic Auth if credentials are provided
+	if c.username != "" && c.password != "" {
+		req.SetBasicAuth(c.username, c.password)
+		logging.LogDebug("🔐 Using Basic Auth for download")
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("network request failed: %w", err)
 	}

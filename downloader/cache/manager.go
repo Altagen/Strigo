@@ -9,15 +9,15 @@ import (
 	"strigo/logging"
 )
 
-// Manager gère le cache des fichiers téléchargés
+// Manager handles cache for downloaded files
 type Manager struct{}
 
-// NewManager crée une nouvelle instance de Manager
+// NewManager creates a new Manager instance
 func NewManager() *Manager {
 	return &Manager{}
 }
 
-// PrepareCacheDirectory prépare le répertoire de cache
+// PrepareCacheDirectory prepares the cache directory
 func (m *Manager) PrepareCacheDirectory(sdkType, distribution, version, cacheDir string) (string, error) {
 	cachePath := filepath.Join(cacheDir, sdkType, distribution, version)
 	if err := os.MkdirAll(cachePath, 0755); err != nil {
@@ -26,7 +26,7 @@ func (m *Manager) PrepareCacheDirectory(sdkType, distribution, version, cacheDir
 	return cachePath, nil
 }
 
-// CleanupCache nettoie le cache si nécessaire
+// CleanupCache cleans up the cache if needed
 func (m *Manager) CleanupCache(cachePath string, keepCache bool) error {
 	if !keepCache {
 		logging.LogDebug("🧹 Cleaning up cache directory: %s", cachePath)
@@ -40,7 +40,7 @@ func (m *Manager) cleanupCacheDirectory(cachePath string) error {
 		return fmt.Errorf("failed to remove cache directory: %w", err)
 	}
 
-	// Nettoyer les répertoires parents vides
+	// Clean up empty parent directories
 	parent := filepath.Dir(cachePath)
 	for parent != filepath.Dir(parent) {
 		if empty, err := m.isDirEmpty(parent); err != nil || !empty {
@@ -63,10 +63,10 @@ func (m *Manager) isDirEmpty(path string) (bool, error) {
 
 	_, err = f.Readdirnames(1)
 	if err == nil {
-		return false, nil // Répertoire non vide
+		return false, nil // Directory not empty
 	}
 	if errors.Is(err, io.EOF) {
-		return true, nil // Répertoire vide
+		return true, nil // Directory empty
 	}
 	return false, fmt.Errorf("failed to check if directory is empty: %w", err)
 }

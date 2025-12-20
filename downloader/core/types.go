@@ -1,13 +1,13 @@
 package core
 
-// CertConfig contient la configuration des certificats
+// CertConfig contains certificate configuration
 type CertConfig struct {
 	Enabled           bool
 	JDKSecurityPath   string
 	SystemCacertsPath string
 }
 
-// DownloadOptions contient les options pour le téléchargement et l'installation
+// DownloadOptions contains options for download and installation
 type DownloadOptions struct {
 	DownloadURL   string
 	CacheDir      string
@@ -17,4 +17,6 @@ type DownloadOptions struct {
 	Version       string
 	KeepCache     bool
 	CertConfig    CertConfig
+	Username      string // HTTP Basic Auth username (optional)
+	Password      string // HTTP Basic Auth password (optional)
 }

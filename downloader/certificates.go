@@ -7,15 +7,15 @@ import (
 	"strigo/logging"
 )
 
-// CertificateManager gère la configuration des certificats
+// CertificateManager handles certificate configuration
 type CertificateManager struct{}
 
-// NewCertificateManager crée une nouvelle instance de CertificateManager
+// NewCertificateManager creates a new CertificateManager instance
 func NewCertificateManager() *CertificateManager {
 	return &CertificateManager{}
 }
 
-// SetupJDKCertificates configure les certificats pour une installation JDK
+// SetupJDKCertificates configures certificates for a JDK installation
 func (cm *CertificateManager) SetupJDKCertificates(installPath string, config CertConfig) error {
 	if !config.Enabled {
 		logging.LogDebug("Certificate configuration is disabled")

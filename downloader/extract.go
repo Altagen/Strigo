@@ -13,15 +13,15 @@ import (
 	"github.com/ulikunitz/xz"
 )
 
-// Extractor gère l'extraction des archives
+// Extractor handles archive extraction
 type Extractor struct{}
 
-// NewExtractor crée une nouvelle instance d'Extractor
+// NewExtractor creates a new Extractor instance
 func NewExtractor() *Extractor {
 	return &Extractor{}
 }
 
-// Extract extrait une archive vers un répertoire de destination
+// Extract extracts an archive to a destination directory
 func (e *Extractor) Extract(archivePath, destPath string) error {
 	if !filepath.IsAbs(destPath) {
 		return fmt.Errorf("destination path must be absolute")

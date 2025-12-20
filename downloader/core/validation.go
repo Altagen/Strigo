@@ -5,20 +5,20 @@ import (
 	"os"
 )
 
-// Validator gère les validations système
+// Validator handles system validations
 type Validator struct{}
 
-// NewValidator crée une nouvelle instance de Validator
+// NewValidator creates a new Validator instance
 func NewValidator() *Validator {
 	return &Validator{}
 }
 
-// ValidateSpace vérifie l'espace disponible
+// ValidateSpace checks available space
 func (v *Validator) ValidateSpace(fileSize int64, directory string) error {
 	return CheckDiskSpace(fileSize, directory)
 }
 
-// ValidateDirectories vérifie et crée les répertoires nécessaires
+// ValidateDirectories checks and creates necessary directories
 func (v *Validator) ValidateDirectories(installPath string) error {
 	if err := os.MkdirAll(installPath, 0755); err != nil {
 		return fmt.Errorf("failed to create installation directory: %w", err)
