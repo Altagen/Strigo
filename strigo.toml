@@ -1,21 +1,28 @@
 [general]
-log_level = "debug"
-sdk_install_dir = "/home/debian/.sdks"
-cache_dir = "/home/debian/.cache/strigo"
+log_level = "info"
+sdk_install_dir = "~/.sdks"
+cache_dir = "~/.cache/strigo"
 log_path = ""
 keep_cache = false
+shell_config_path = ""
+
+# Version patterns configuration
+# You can customize this to point to your own patterns file
+# Default: strigopatterns.toml (in the same directory as strigo.toml)
+# You can also use STRIGO_PATTERNS_PATH environment variable to override
+patterns_file = ""  # Empty = use default (strigopatterns.toml)
 
 # Java certificates paths
 jdk_security_path = "lib/security/cacerts"        # Relative path in JDK
 system_cacerts_path = "/etc/ssl/certs"  # System Java certificates path
 
 [registries]
-nexus = { 
-    type = "nexus", 
-    api_url = "http://192.168.1.30:8081/service/rest/v1/assets?repository={repository}"
+nexus = {
+    type = "nexus",
+    api_url = "http://localhost:8081/service/rest/v1/assets?repository={repository}"
 }
 
-[sdk_type]
+[sdk_types]
 jdk = {
     type = "jdk",
     install_dir = "jdks"
