@@ -10,7 +10,7 @@ import (
 	"strigo/logging"
 )
 
-// Manager orchestre le processus de téléchargement et d'installation
+// Manager orchestrates the download and installation process
 type Manager struct {
 	network     *network.Client
 	extractor   *Extractor
@@ -19,28 +19,39 @@ type Manager struct {
 	certificates *jdk.CertificateManager
 }
 
-// NewManager crée une nouvelle instance de Manager
+// NewManager creates a new Manager instance
 func NewManager() *Manager {
 	return &Manager{
-		network:     network.NewClient(),
-		extractor:   NewExtractor(),
-		cache:       cache.NewManager(),
-		validator:   core.NewValidator(),
+		network:      network.NewClient(),
+		extractor:    NewExtractor(),
+		cache:        cache.NewManager(),
+		validator:    core.NewValidator(),
 		certificates: jdk.NewCertificateManager(),
 	}
 }
 
-// DownloadAndExtract gère le processus complet de téléchargement et d'installation
+// NewManagerWithAuth creates a new Manager instance with authentication
+func NewManagerWithAuth(username, password string) *Manager {
+	return &Manager{
+		network:      network.NewClientWithAuth(username, password),
+		extractor:    NewExtractor(),
+		cache:        cache.NewManager(),
+		validator:    core.NewValidator(),
+		certificates: jdk.NewCertificateManager(),
+	}
+}
+
+// DownloadAndExtract handles the complete download and installation process
 func (m *Manager) DownloadAndExtract(opts core.DownloadOptions) error {
 	logging.LogDebug("🔍 Starting installation process for %s %s %s", opts.SDKType, opts.Distribution, opts.Version)
 
-	// Vérifier la taille du fichier
+	// Check file size
 	fileSize, err := m.network.GetFileSize(opts.DownloadURL)
 	if err != nil {
 		return fmt.Errorf("failed to get file size: %w", err)
 	}
 
-	// Valider l'espace disponible
+	// Validate available space
 	if err := m.validator.ValidateSpace(fileSize, opts.CacheDir); err != nil {
 		return fmt.Errorf("cache directory space check failed: %w", err)
 	}
@@ -48,34 +59,34 @@ func (m *Manager) DownloadAndExtract(opts core.DownloadOptions) error {
 		return fmt.Errorf("install directory space check failed: %w", err)
 	}
 
-	// Préparer le cache
+	// Prepare cache
 	cachePath, err := m.cache.PrepareCacheDirectory(opts.SDKType, opts.Distribution, opts.Version, opts.CacheDir)
 	if err != nil {
 		return fmt.Errorf("failed to prepare cache: %w", err)
 	}
 
-	// Télécharger le fichier
+	// Download file
 	cacheFile := filepath.Join(cachePath, filepath.Base(opts.DownloadURL))
 	if err := m.network.DownloadFile(opts.DownloadURL, cacheFile); err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
 
-	// Valider et créer le répertoire d'installation
+	// Validate and create installation directory
 	if err := m.validator.ValidateDirectories(opts.InstallPath); err != nil {
 		return fmt.Errorf("failed to prepare installation directory: %w", err)
 	}
 
-	// Extraire l'archive
+	// Extract archive
 	if err := m.extractor.Extract(cacheFile, opts.InstallPath); err != nil {
 		return fmt.Errorf("extraction failed: %w", err)
 	}
 
-	// Nettoyer le cache si nécessaire
+	// Clean cache if needed
 	if err := m.cache.CleanupCache(cachePath, opts.KeepCache); err != nil {
 		logging.LogDebug("⚠️ Cache cleanup failed: %v", err)
 	}
 
-	// Configurer les certificats si nécessaire
+	// Configure certificates if needed
 	if opts.SDKType == "jdk" {
 		if err := m.certificates.SetupCertificates(opts.InstallPath, opts.CertConfig); err != nil {
 			logging.LogDebug("⚠️ Certificate setup failed: %v", err)

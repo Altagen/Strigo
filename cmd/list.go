@@ -89,13 +89,13 @@ func listSDKTypes(cfg *config.Config, output *CommandOutput) error {
 }
 
 func listDistributions(cfg *config.Config, sdkType string, output *CommandOutput) error {
-	// Vérifier si le type de SDK existe
+	// Check if SDK type exists
 	sdkTypeConfig, exists := cfg.SDKTypes[sdkType]
 	if !exists {
 		return fmt.Errorf("SDK type %s not found in configuration", sdkType)
 	}
 
-	// Construire le chemin de base
+	// Build base path
 	basePath := filepath.Join(cfg.General.SDKInstallDir, sdkTypeConfig.InstallDir)
 
 	entries, err := os.ReadDir(basePath)
@@ -139,13 +139,13 @@ func listDistributions(cfg *config.Config, sdkType string, output *CommandOutput
 }
 
 func listVersions(cfg *config.Config, sdkType, distribution string, output *CommandOutput) error {
-	// Vérifier si le type de SDK existe
+	// Check if SDK type exists
 	sdkTypeConfig, exists := cfg.SDKTypes[sdkType]
 	if !exists {
 		return fmt.Errorf("SDK type %s not found in configuration", sdkType)
 	}
 
-	// Construire le chemin de base
+	// Build base path
 	basePath := filepath.Join(cfg.General.SDKInstallDir, sdkTypeConfig.InstallDir, distribution)
 
 	entries, err := os.ReadDir(basePath)
@@ -167,7 +167,7 @@ func listVersions(cfg *config.Config, sdkType, distribution string, output *Comm
 		}
 	}
 
-	// Trier les versions
+	// Sort versions
 	sort.Slice(versions, func(i, j int) bool {
 		return repository.CompareVersions(versions[i], versions[j])
 	})
@@ -182,14 +182,14 @@ func listVersions(cfg *config.Config, sdkType, distribution string, output *Comm
 		return nil
 	}
 
-	// Grouper les versions par version majeure
+	// Group versions by major version
 	versionGroups := make(map[string][]string)
 	for _, version := range versions {
 		majorVersion := repository.ExtractMajorVersion(version)
 		versionGroups[majorVersion] = append(versionGroups[majorVersion], version)
 	}
 
-	// Obtenir les versions majeures triées
+	// Get sorted major versions
 	var majorVersions []int
 	for major := range versionGroups {
 		if num, err := strconv.Atoi(major); err == nil {
@@ -205,7 +205,7 @@ func listVersions(cfg *config.Config, sdkType, distribution string, output *Comm
 		major := strconv.Itoa(majorNum)
 		versions := versionGroups[major]
 
-		// Trier les versions dans chaque groupe
+		// Sort versions in each group
 		sort.Slice(versions, func(i, j int) bool {
 			return repository.CompareVersions(versions[i], versions[j])
 		})

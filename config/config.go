@@ -20,6 +20,7 @@ type GeneralConfig struct {
 	JDKSecurityPath   string `toml:"jdk_security_path"`
 	SystemCacertsPath string `toml:"system_cacerts_path"`
 	ShellConfigPath   string `toml:"shell_config_path"`
+	PatternsFile      string `toml:"patterns_file"` // Path to strigopatterns.toml (default: strigopatterns.toml)
 }
 
 // SDKType represents a referenced SDK type configuration
@@ -30,8 +31,10 @@ type SDKType struct {
 
 // Registry represents a remote registry configuration
 type Registry struct {
-	Type   string `toml:"type"`
-	APIURL string `toml:"api_url"`
+	Type     string `toml:"type"`
+	APIURL   string `toml:"api_url"`
+	Username string `toml:"username,omitempty"` // Optional: for authenticated registries
+	Password string `toml:"password,omitempty"` // Optional: for authenticated registries
 }
 
 // SDKRepository represents a referenced SDK configuration
@@ -87,6 +90,15 @@ func LoadConfig() (*Config, error) {
 	var cfg Config
 	err = toml.Unmarshal(file, &cfg)
 	if err != nil {
+		// Always print to stderr for parsing errors (before log level is set)
+		fmt.Fprintf(os.Stderr, "❌ Failed to parse config file '%s': %v\n", configPath, err)
+
+		// Check for common issues
+		errMsg := strings.ToLower(err.Error())
+		if strings.Contains(errMsg, "duplicate") || strings.Contains(errMsg, "defined twice") || strings.Contains(errMsg, "already defined") {
+			fmt.Fprintf(os.Stderr, "\n💡 Hint: You have duplicate keys in your TOML file. Each repository/registry name must be unique.\n")
+		}
+
 		logging.PreLog("ERROR", "❌ Failed to parse config file: %v", err)
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
@@ -104,7 +116,13 @@ func LoadConfig() (*Config, error) {
 	// Apply temporary log level to filter PreLog()
 	logging.SetPreLogLevel(cfg.General.LogLevel)
 
-	logging.PreLog("DEBUG", "✅ Configuration successfully loaded.")
+	// Validate configuration
+	if err := cfg.Validate(); err != nil {
+		logging.PreLog("ERROR", "❌ Configuration validation failed: %v", err)
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	logging.PreLog("DEBUG", "✅ Configuration successfully loaded and validated.")
 	return &cfg, nil
 }
 
@@ -163,7 +181,7 @@ func (c *Config) Validate() error {
 		c.General.ShellConfigPath = expandedPath
 	}
 
-	// Vérifier que les chemins requis pour les JDKs sont définis
+	// Check that required paths for JDKs are defined
 	if c.General.JDKSecurityPath == "" {
 		return fmt.Errorf("jdk_security_path must be set")
 	}

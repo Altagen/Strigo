@@ -31,27 +31,27 @@ func handleClean() error {
 		return fmt.Errorf("configuration is not loaded")
 	}
 
-	// Obtenir JAVA_HOME actuel
+	// Get current JAVA_HOME
 	javaHome := os.Getenv("JAVA_HOME")
 	if javaHome == "" {
 		logging.LogInfo("ℹ️  No JAVA_HOME currently set")
 		return nil
 	}
 
-	// Vérifier si le chemin existe
+	// Check if the path exists
 	if _, err := os.Stat(javaHome); os.IsNotExist(err) {
 		logging.LogInfo("❌ Current JAVA_HOME points to non-existent path: %s", javaHome)
 		return cleanJavaHome()
 	}
 
-	// Vérifier si c'est un JDK installé par strigo
+	// Check if it's a JDK installed by strigo
 	sdkInstallDir := cfg.General.SDKInstallDir
 	if !strings.HasPrefix(javaHome, sdkInstallDir) {
 		logging.LogInfo("⚠️  Current JAVA_HOME points to a JDK not managed by strigo: %s", javaHome)
 		return nil
 	}
 
-	// Vérifier si le JDK est toujours valide
+	// Check if the JDK is still valid
 	relativePath := strings.TrimPrefix(javaHome, sdkInstallDir)
 	parts := strings.Split(strings.Trim(relativePath, string(os.PathSeparator)), string(os.PathSeparator))
 
@@ -62,14 +62,14 @@ func handleClean() error {
 
 	sdkType, distribution := parts[0], parts[1]
 
-	// Vérifier si le type de SDK existe (accepter singulier ou pluriel)
-	baseType := strings.TrimSuffix(sdkType, "s") // Enlever le 's' final si présent
+	// Check if SDK type exists (accept singular or plural)
+	baseType := strings.TrimSuffix(sdkType, "s") // Remove trailing 's' if present
 	if _, exists := cfg.SDKTypes[baseType]; !exists {
 		logging.LogInfo("❌ Invalid SDK type: %s", sdkType)
 		return cleanJavaHome()
 	}
 
-	// Vérifier si la distribution existe
+	// Check if the distribution exists
 	if _, exists := cfg.SDKRepositories[distribution]; !exists {
 		logging.LogInfo("❌ Invalid distribution: %s", distribution)
 		return cleanJavaHome()
@@ -80,7 +80,7 @@ func handleClean() error {
 }
 
 func cleanJavaHome() error {
-	// Déterminer le shell de l'utilisateur
+	// Determine the user's shell
 	shell := os.Getenv("SHELL")
 	var rcFile string
 
@@ -93,13 +93,13 @@ func cleanJavaHome() error {
 		return fmt.Errorf("unsupported shell: %s. Please clean JAVA_HOME manually", shell)
 	}
 
-	// Lire le contenu actuel
+	// Read current content
 	content, err := os.ReadFile(rcFile)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to read rc file: %w", err)
 	}
 
-	// Supprimer les lignes JAVA_HOME
+	// Remove JAVA_HOME lines
 	lines := strings.Split(string(content), "\n")
 	var newLines []string
 	for _, line := range lines {
@@ -108,7 +108,7 @@ func cleanJavaHome() error {
 		}
 	}
 
-	// Écrire le nouveau contenu
+	// Write new content
 	newContent := strings.Join(newLines, "\n")
 	if err := os.WriteFile(rcFile, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("failed to update rc file: %w", err)

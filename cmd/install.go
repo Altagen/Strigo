@@ -66,41 +66,41 @@ func handleInstall(sdkType, distribution, version string) error {
 	sdkTypeConfig, exists := cfg.SDKTypes[sdkType]
 	if !exists {
 		logging.LogError("❌ SDK type %s not found in configuration", sdkType)
-		return nil
+		return fmt.Errorf("SDK type %s not found", sdkType)
 	}
 
 	// Check if the distribution exists
 	sdkRepo, exists := cfg.SDKRepositories[distribution]
 	if !exists {
 		logging.LogError("❌ Distribution %s not found in configuration", distribution)
-		return nil
+		return fmt.Errorf("distribution %s not found", distribution)
 	}
 
 	// Verify that the distribution's type matches the requested type
 	if sdkRepo.Type != sdkTypeConfig.Type {
 		logging.LogError("❌ Distribution %s is not of type %s", distribution, sdkType)
-		return nil
+		return fmt.Errorf("distribution %s is not of type %s", distribution, sdkType)
 	}
 
 	// Get registry information
 	registry, exists := cfg.Registries[sdkRepo.Registry]
 	if !exists {
 		logging.LogError("❌ Registry %s not found in configuration", sdkRepo.Registry)
-		return nil
+		return fmt.Errorf("registry %s not found", sdkRepo.Registry)
 	}
 
 	// Fetch available versions with filter
-	assets, err := repository.FetchAvailableVersions(sdkRepo, registry, version, true) // true to remove display
+	assets, err := repository.FetchAvailableVersions(sdkRepo, registry, version, true, cfg.General.PatternsFile) // true to remove display
 	if err != nil {
 		logging.LogError("❌ Failed to fetch versions: %v", err)
-		return nil
+		return fmt.Errorf("failed to fetch versions: %w", err)
 	}
 
 	// Find exact version match
 	var matchedAsset *repository.SDKAsset
-	for _, asset := range assets {
-		if asset.Version == version {
-			matchedAsset = &asset
+	for i := range assets {
+		if assets[i].Version == version {
+			matchedAsset = &assets[i]
 			break
 		}
 	}
@@ -108,7 +108,7 @@ func handleInstall(sdkType, distribution, version string) error {
 	if matchedAsset == nil {
 		logging.LogError("❌ Version %s not found", version)
 		logging.LogInfo("💡 Use 'strigo available %s %s' to see available versions", sdkType, distribution)
-		return nil
+		return fmt.Errorf("version %s not found", version)
 	}
 
 	logging.LogInfo("✅ Found version %s, preparing for installation...", version)
@@ -117,19 +117,19 @@ func handleInstall(sdkType, distribution, version string) error {
 	installPath, err := GetInstallPath(cfg, sdkType, distribution, version)
 	if err != nil {
 		logging.LogError("❌ Failed to get installation path: %v", err)
-		return nil
+		return fmt.Errorf("failed to get installation path: %w", err)
 	}
 
 	// Check if already installed
 	if _, err := os.Stat(installPath); err == nil {
 		logging.LogError("❌ Version %s is already installed at %s", version, installPath)
-		return nil
+		return fmt.Errorf("version %s is already installed", version)
 	}
 
 	// Create installation directory
 	if err := os.MkdirAll(filepath.Dir(installPath), 0755); err != nil {
 		logging.LogError("❌ Failed to create installation directory: %v", err)
-		return nil
+		return fmt.Errorf("failed to create installation directory: %w", err)
 	}
 
 	// Prepare certificate configuration
@@ -138,8 +138,15 @@ func handleInstall(sdkType, distribution, version string) error {
 		SystemCacertsPath: cfg.General.SystemCacertsPath,
 	}
 
-	// Download and extract
-	manager := downloader.NewManager()
+	// Download and extract - create manager with auth if credentials are provided
+	var manager *downloader.Manager
+	if registry.Username != "" && registry.Password != "" {
+		logging.LogDebug("🔐 Creating download manager with authentication")
+		manager = downloader.NewManagerWithAuth(registry.Username, registry.Password)
+	} else {
+		manager = downloader.NewManager()
+	}
+
 	opts := core.DownloadOptions{
 		DownloadURL:  matchedAsset.DownloadUrl,
 		CacheDir:     cfg.General.CacheDir,
@@ -149,6 +156,8 @@ func handleInstall(sdkType, distribution, version string) error {
 		Version:      version,
 		KeepCache:    cfg.General.KeepCache,
 		CertConfig:   certConfig,
+		Username:     registry.Username,
+		Password:     registry.Password,
 	}
 	err = manager.DownloadAndExtract(opts)
 
@@ -156,7 +165,7 @@ func handleInstall(sdkType, distribution, version string) error {
 		logging.LogError("❌ Installation failed: %v", err)
 		// Cleanup on failure
 		os.RemoveAll(installPath)
-		return nil
+		return fmt.Errorf("installation failed: %w", err)
 	}
 
 	// For JDKs, manage certificates

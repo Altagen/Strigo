@@ -1,0 +1,58 @@
+[general]
+log_level = "debug"
+sdk_install_dir = "/tmp/strigo-e2e-test-sdks"
+cache_dir = "/tmp/strigo-e2e-test-cache"
+keep_cache = false
+patterns_file = "repository/version/patterns/builtin.toml"
+jdk_security_path = "lib/security/cacerts"
+system_cacerts_path = "/etc/ssl/certs/ca-certificates.crt"
+
+[sdk_types]
+jdk = {
+    type = "jdk",
+    install_dir = "jdks"
+}
+node = {
+    type = "node",
+    install_dir = "nodes"
+}
+
+[registries]
+nexus = {
+    type = "nexus",
+    api_url = "http://localhost:8081/service/rest/v1/assets?repository={repository}",
+    username = "admin",
+    password = "admin"
+}
+
+[sdk_repositories]
+temurin = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/adoptium/temurin"
+}
+corretto = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/amazon/corretto"
+}
+zulu = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/azul/zulu"
+}
+mandrel = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/graalvm/mandrel"
+}
+nodejs = {
+    registry = "nexus",
+    repository = "raw",
+    type = "node",
+    path = "node"
+}

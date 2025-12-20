@@ -2,12 +2,11 @@ package repository
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 	"strconv"
 	"strigo/config"
 	"strigo/logging"
-	"strings"
+	"strigo/repository/version"
 )
 
 // RepositoryClient defines the interface for fetching available versions
@@ -16,18 +15,34 @@ type RepositoryClient interface {
 }
 
 // FetchAvailableVersions fetches available versions with optional JSON output control
-func FetchAvailableVersions(repo config.SDKRepository, registry config.Registry, versionFilter string, opts ...bool) ([]SDKAsset, error) {
+// opts[0]: jsonOutput (bool) - whether to suppress display output
+// opts[1]: patternsFilePath (string) - custom patterns file path (empty for default)
+func FetchAvailableVersions(repo config.SDKRepository, registry config.Registry, versionFilter string, opts ...interface{}) ([]SDKAsset, error) {
 	var client RepositoryClient
 
-	// Par défaut, on affiche les versions (jsonOutput = false)
+	// Parse options
 	jsonOutput := false
+	patternsFilePath := ""
+
 	if len(opts) > 0 {
-		jsonOutput = opts[0]
+		if b, ok := opts[0].(bool); ok {
+			jsonOutput = b
+		}
+	}
+	if len(opts) > 1 {
+		if s, ok := opts[1].(string); ok {
+			patternsFilePath = s
+		}
 	}
 
 	switch registry.Type {
 	case "nexus":
-		client = &NexusClient{}
+		nexusClient, err := NewNexusClientWithConfig(patternsFilePath)
+		if err != nil {
+			logging.LogError("❌ Failed to initialize Nexus client: %v", err)
+			return nil, fmt.Errorf("failed to initialize Nexus client: %w", err)
+		}
+		client = nexusClient
 	default:
 		logging.LogError("❌ Unsupported repository type: %s", registry.Type)
 		return nil, fmt.Errorf("unsupported repository type: %s", registry.Type)
@@ -38,7 +53,7 @@ func FetchAvailableVersions(repo config.SDKRepository, registry config.Registry,
 		return nil, err
 	}
 
-	// Si on n'est pas en mode JSON, on affiche les versions
+	// If not in JSON mode, display versions
 	if !jsonOutput {
 		displayVersions(assets)
 	}
@@ -48,16 +63,16 @@ func FetchAvailableVersions(repo config.SDKRepository, registry config.Registry,
 
 // displayVersions handles the user-friendly output
 func displayVersions(assets []SDKAsset) {
-	// Créer une map pour regrouper par version majeure
+	// Create a map to group by major version
 	versionGroups := make(map[string][]string)
 
-	// Extraire la version majeure et regrouper
+	// Extract major version and group
 	for _, asset := range assets {
-		majorVersion := extractMajorVersion(asset.Version)
+		majorVersion := ExtractMajorVersion(asset.Version)
 		versionGroups[majorVersion] = append(versionGroups[majorVersion], asset.Version)
 	}
 
-	// Obtenir les versions majeures triées numériquement
+	// Get numerically sorted major versions
 	var majorVersions []int
 	for major := range versionGroups {
 		if num, err := strconv.Atoi(major); err == nil {
@@ -71,7 +86,7 @@ func displayVersions(assets []SDKAsset) {
 		major := strconv.Itoa(majorNum)
 		versions := versionGroups[major]
 
-		// Trier les versions dans chaque groupe
+		// Sort versions in each group
 		sort.Slice(versions, func(i, j int) bool {
 			return CompareVersions(versions[i], versions[j])
 		})
@@ -86,53 +101,19 @@ func displayVersions(assets []SDKAsset) {
 	logging.LogOutput("   strigo install jdk [distribution] [version]")
 }
 
-// ExtractMajorVersion extrait la version majeure d'une version complète
-func ExtractMajorVersion(version string) string {
-	patterns := []string{
-		`^(\d+)\..*`, // Pour 11.0.26_4, 21.0.6_7
-		`^(\d+)u.*`,  // Pour 8u442b06
+// ExtractMajorVersion is deprecated. Use version.ExtractMajor instead.
+// Kept for backward compatibility with existing code.
+func ExtractMajorVersion(versionStr string) string {
+	result := version.ExtractMajor(versionStr)
+	// Maintain backward compatibility: return "unknown" if empty
+	if result == "" {
+		return "unknown"
 	}
-
-	for _, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
-		if matches := re.FindStringSubmatch(version); len(matches) > 1 {
-			return matches[1]
-		}
-	}
-	return "unknown"
+	return result
 }
 
-// Garder une version privée pour une utilisation interne
-func extractMajorVersion(version string) string {
-	return ExtractMajorVersion(version)
-}
-
-// CompareVersions compare deux versions et retourne true si v1 est plus ancienne que v2
+// CompareVersions is deprecated. Use version.CompareVersions instead.
+// Kept for backward compatibility with existing code.
 func CompareVersions(v1, v2 string) bool {
-	// Normaliser les versions pour gérer les différents formats
-	v1Parts := strings.Split(strings.Replace(strings.Replace(v1, "u", ".", -1), "_", ".", -1), ".")
-	v2Parts := strings.Split(strings.Replace(strings.Replace(v2, "u", ".", -1), "_", ".", -1), ".")
-
-	// Comparer chaque partie numérique
-	minLen := len(v1Parts)
-	if len(v2Parts) < minLen {
-		minLen = len(v2Parts)
-	}
-
-	for i := 0; i < minLen; i++ {
-		n1, err1 := strconv.Atoi(v1Parts[i])
-		n2, err2 := strconv.Atoi(v2Parts[i])
-
-		// Si une partie n'est pas un nombre, passer à la suivante
-		if err1 != nil || err2 != nil {
-			continue
-		}
-
-		if n1 != n2 {
-			return n1 < n2 // Ordre croissant
-		}
-	}
-
-	// Si toutes les parties sont égales, la version avec moins de parties est considérée plus ancienne
-	return len(v1Parts) < len(v2Parts)
+	return version.CompareVersions(v1, v2)
 }

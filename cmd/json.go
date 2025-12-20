@@ -5,18 +5,18 @@ import (
 	"fmt"
 )
 
-// Variables globales pour le mode JSON
+// Global variables for JSON mode
 var (
-	jsonOutput bool // Flag pour la sortie en JSON
-	jsonLogs   bool // Flag pour les logs en JSON
+	jsonOutput bool // Flag for JSON output
+	jsonLogs   bool // Flag for JSON logs
 )
 
-// GetJsonOutput retourne la valeur du flag JSON
+// GetJsonOutput returns the value of the JSON flag
 func GetJsonOutput() bool {
 	return jsonOutput
 }
 
-// CommandOutput structure pour la sortie JSON
+// CommandOutput structure for JSON output
 type CommandOutput struct {
 	Types         []string `json:"types,omitempty"`
 	Distributions []string `json:"distributions,omitempty"`
@@ -24,7 +24,7 @@ type CommandOutput struct {
 	Error         string   `json:"error,omitempty"`
 }
 
-// OutputJSON gère la sortie JSON pour toutes les commandes
+// OutputJSON handles JSON output for all commands
 func OutputJSON(data interface{}) error {
 	jsonData, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {

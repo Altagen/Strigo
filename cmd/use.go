@@ -15,6 +15,24 @@ var (
 	unsetEnv  bool
 )
 
+// getHomeDir returns the user's home directory with proper error handling
+func getHomeDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("unable to determine home directory: %w", err)
+	}
+	return home, nil
+}
+
+// getShell returns the current shell with a fallback to /bin/bash
+func getShell() string {
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/bash"
+	}
+	return shell
+}
+
 func init() {
 	useCmd.Flags().BoolVarP(&setEnvVar, "set-env", "e", false, "Set environment variables in shell configuration file (~/.bashrc or ~/.zshrc)")
 	useCmd.Flags().BoolVar(&unsetEnv, "unset", false, "Remove environment variables from shell configuration file")
@@ -109,8 +127,11 @@ func findRcFile() (string, error) {
 	}
 
 	// Auto-detect based on current shell
-	shell := os.Getenv("SHELL")
-	home := os.Getenv("HOME")
+	shell := getShell()
+	home, err := getHomeDir()
+	if err != nil {
+		return "", err
+	}
 
 	// List of possible RC files
 	var rcFiles []string
@@ -161,9 +182,9 @@ func handleUnset(sdkType string) error {
 	// Expand tilde if present
 	expandedPath := rcFile
 	if strings.HasPrefix(rcFile, "~") {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return fmt.Errorf("HOME environment variable not set")
+		home, err := getHomeDir()
+		if err != nil {
+			return err
 		}
 		expandedPath = filepath.Join(home, rcFile[1:])
 	}
@@ -283,9 +304,9 @@ func configureEnvironment(sdkType, sdkPath string) error {
 	// Expand tilde if present
 	expandedPath := rcFile
 	if strings.HasPrefix(rcFile, "~") {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return fmt.Errorf("HOME environment variable not set")
+		home, err := getHomeDir()
+		if err != nil {
+			return err
 		}
 		expandedPath = filepath.Join(home, rcFile[1:])
 	}
