@@ -8,14 +8,14 @@ import (
 )
 
 func TestMatchedAssetPointerValidity(t *testing.T) {
-	// Créer une liste d'assets
+	// Create a list of assets
 	assets := []repository.SDKAsset{
 		{Version: "11.0.24_8", DownloadUrl: "http://url1"},
 		{Version: "11.0.26_4", DownloadUrl: "http://url2"},
 		{Version: "17.0.2_8", DownloadUrl: "http://url3"},
 	}
 
-	// Simuler la recherche (avec le code corrigé)
+	// Simulate search (with corrected code)
 	var matchedAsset *repository.SDKAsset
 	targetVersion := "11.0.26_4"
 
@@ -26,19 +26,19 @@ func TestMatchedAssetPointerValidity(t *testing.T) {
 		}
 	}
 
-	// Vérifier que le pointeur est valide
+	// Verify that the pointer is valid
 	assert.NotNil(t, matchedAsset)
 	assert.Equal(t, "11.0.26_4", matchedAsset.Version)
 	assert.Equal(t, "http://url2", matchedAsset.DownloadUrl)
 
-	// Vérifier que les données sont stables (pas de corruption mémoire)
+	// Verify that data is stable (no memory corruption)
 	version1 := matchedAsset.Version
 	url1 := matchedAsset.DownloadUrl
 
-	// Faire quelques opérations
+	// Perform some operations
 	_ = len(assets)
 
-	// Re-vérifier
+	// Re-verify
 	assert.Equal(t, version1, matchedAsset.Version)
 	assert.Equal(t, url1, matchedAsset.DownloadUrl)
 }

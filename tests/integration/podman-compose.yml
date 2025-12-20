@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  nexus:
+    image: docker.io/sonatype/nexus3:latest
+    container_name: strigo-nexus-test
+    ports:
+      - "8081:8081"
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms512m -Xmx512m
+    volumes:
+      - nexus-data:/nexus-data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+volumes:
+  nexus-data:

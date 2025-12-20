@@ -11,10 +11,10 @@ import (
 )
 
 func TestIsDirEmpty(t *testing.T) {
-	// Créer un répertoire temporaire
+	// Create temporary directory
 	tmpDir := t.TempDir()
 
-	// Test 1: Répertoire vide
+	// Test 1: Empty directory
 	emptyDir := filepath.Join(tmpDir, "empty")
 	err := os.Mkdir(emptyDir, 0755)
 	require.NoError(t, err)
@@ -25,15 +25,15 @@ func TestIsDirEmpty(t *testing.T) {
 
 	_, err = f.Readdirnames(1)
 	assert.Error(t, err)
-	// Le test principal: vérifier que c'est bien io.EOF
+	// Main test: verify that it's io.EOF
 	assert.ErrorIs(t, err, io.EOF)
 
-	// Test 2: Répertoire non vide
+	// Test 2: Non-empty directory
 	nonEmptyDir := filepath.Join(tmpDir, "nonempty")
 	err = os.Mkdir(nonEmptyDir, 0755)
 	require.NoError(t, err)
 
-	// Créer un fichier dedans
+	// Create a file inside
 	testFile := filepath.Join(nonEmptyDir, "test.txt")
 	err = os.WriteFile(testFile, []byte("test"), 0644)
 	require.NoError(t, err)
@@ -43,5 +43,5 @@ func TestIsDirEmpty(t *testing.T) {
 	defer f2.Close()
 
 	_, err = f2.Readdirnames(1)
-	assert.NoError(t, err) // Pas d'erreur si non vide
+	assert.NoError(t, err) // No error if not empty
 }
