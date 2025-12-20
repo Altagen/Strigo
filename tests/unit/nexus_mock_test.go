@@ -50,7 +50,7 @@ func TestNexusClientWithMockServer(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
@@ -92,7 +92,7 @@ func TestNexusClientEmptyResponse(t *testing.T) {
 			Items: []mockNexusItem{},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
@@ -118,7 +118,7 @@ func TestNexusClientEmptyResponse(t *testing.T) {
 func TestNexusClientHTTPError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal Server Error"))
+		_, _ = w.Write([]byte("Internal Server Error"))
 	}))
 	defer server.Close()
 
@@ -144,7 +144,7 @@ func TestNexusClientHTTPError(t *testing.T) {
 func TestNexusClientInvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("invalid json {{{"))
+		_, _ = w.Write([]byte("invalid json {{{"))
 	}))
 	defer server.Close()
 
@@ -186,7 +186,7 @@ func TestNexusClientVersionFiltering(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
@@ -237,7 +237,7 @@ func TestNexusClientMixedVersionFormats(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
@@ -263,6 +263,10 @@ func TestNexusClientMixedVersionFormats(t *testing.T) {
 
 // TestNexusClientNetworkTimeout tests handling of network timeouts
 func TestNexusClientNetworkTimeout(t *testing.T) {
+	// Note: This test might take some time depending on default HTTP client timeout
+	// Skip if running in CI or add a timeout to the test context
+	t.Skip("Skipping timeout test - requires HTTP client timeout configuration")
+
 	// Create a server that never responds
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Sleep longer than the client timeout (if configured)
@@ -282,10 +286,6 @@ func TestNexusClientNetworkTimeout(t *testing.T) {
 		Repository: "raw",
 		Path:       "jdk/test/timeout",
 	}
-
-	// Note: This test might take some time depending on default HTTP client timeout
-	// Skip if running in CI or add a timeout to the test context
-	t.Skip("Skipping timeout test - requires HTTP client timeout configuration")
 
 	_, err := repository.FetchAvailableVersions(repo, registry, "", true, "")
 	require.Error(t, err)
