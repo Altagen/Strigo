@@ -317,19 +317,24 @@ DEBUG:    Trying pattern 'your-pattern': MATCH! version=17.0.11
 ### Problem: File Not Found
 
 ```
-Error: failed to read patterns file strigopatterns.toml: no such file or directory
+Error: failed to read patterns file strigo-patterns.toml: no such file or directory
 ```
 
-**Solutions:**
+**Solution:**
 
-1. Create the file manually:
+Copy the example patterns file from the Strigo repository:
 ```bash
-cp repository/version/patterns/builtin.toml strigopatterns.toml
+# From the Strigo project root
+cp strigo-patterns.toml /path/to/your/config/directory/
+
+# Or download from GitHub
+wget https://raw.githubusercontent.com/your-org/strigo/main/strigo-patterns.toml
 ```
 
-2. Or run a strigo command to create the file automatically:
-```bash
-strigo available jdk temurin
+Then configure the path in your `strigo.toml`:
+```toml
+[general]
+patterns_file = "/path/to/your/strigo-patterns.toml"
 ```
 
 ---
@@ -388,7 +393,7 @@ strigo available jdk temurin
 
 - **Regex syntax:** https://github.com/google/re2/wiki/Syntax
 - **TOML syntax:** https://toml.io/en/
-- **Reference file:** `repository/version/patterns/builtin.toml`
+- **Reference file:** `strigo-patterns.toml` (in the Strigo repository)
 
 ---
 
