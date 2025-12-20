@@ -3,7 +3,6 @@ package version
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strigo/logging"
 
@@ -28,128 +27,18 @@ type Parser struct {
 	patterns []Pattern
 }
 
-// GetPatternsFilePath returns the path to the patterns configuration file
-// Priority order:
-//   1. STRIGO_PATTERNS_PATH env var (highest priority)
-//   2. Config file setting (if provided)
-//   3. Default: strigopatterns.toml in current directory
-func GetPatternsFilePath(configPath string) string {
-	// 1. Check environment variable first (highest priority)
-	if envPath := os.Getenv("STRIGO_PATTERNS_PATH"); envPath != "" {
-		return envPath
-	}
-
-	// 2. Use config file setting if provided
-	if configPath != "" {
-		return configPath
-	}
-
-	// 3. Default fallback
-	return "strigopatterns.toml"
-}
-
-// EnsurePatternsFile creates the patterns file with default content if it doesn't exist
-func EnsurePatternsFile(configPath string) error {
-	patternsPath := GetPatternsFilePath(configPath)
-
-	// Check if file already exists
-	if _, err := os.Stat(patternsPath); err == nil {
-		logging.LogDebug("📦 Patterns file already exists: %s", patternsPath)
-		return nil
-	}
-
-	logging.LogDebug("📦 Creating default patterns file: %s", patternsPath)
-
-	// Read the builtin patterns file as default
-	builtinPath := filepath.Join("repository", "version", "patterns", "builtin.toml")
-	defaultContent, err := os.ReadFile(builtinPath)
-	if err != nil {
-		// If builtin.toml doesn't exist, use embedded default
-		logging.LogDebug("⚠️  Could not read builtin.toml, using minimal default")
-		defaultContent = []byte(getMinimalDefaultPatterns())
-	}
-
-	// Update header comment to reflect that this is the user-editable file
-	header := `# Strigo Version Parsing Patterns
-#
-# This file defines regex patterns for extracting versions from SDK distribution paths.
-# You can edit this file to add your own custom patterns.
-#
-# IMPORTANT: After modifying this file, restart strigo or run the command again.
-#
-# PATTERN STRUCTURE:
-# [[patterns]]
-# name = "provider-name"           # Unique identifier for the pattern set
-# type = "jdk"                      # SDK type (jdk, node, python, etc.)
-# description = "..."               # Human-readable description
-# patterns = [                      # Array of regex patterns (tried in order)
-#     "(?i)pattern1...",            # Case-insensitive pattern 1
-#     "(?i)pattern2...",            # Case-insensitive pattern 2
-# ]
-#
-# TIPS:
-# - Use (?i) at the start of patterns for case-insensitive matching
-# - Patterns are tried in the order they appear in this file
-# - You can add new [[patterns]] sections for custom distributions
-#
-
-`
-
-	// Write the file
-	if err := os.WriteFile(patternsPath, []byte(header+string(defaultContent)), 0644); err != nil {
-		return fmt.Errorf("failed to create patterns file: %w", err)
-	}
-
-	logging.LogDebug("✅ Created patterns file: %s", patternsPath)
-	return nil
-}
-
-// getMinimalDefaultPatterns returns a minimal set of patterns if builtin.toml is not available
-func getMinimalDefaultPatterns() string {
-	return `# Minimal default patterns (builtin.toml not found)
-
-[[patterns]]
-name = "temurin"
-type = "jdk"
-description = "Eclipse Temurin (AdoptOpenJDK)"
-patterns = [
-    "(?i)jdk-(\\d+\\.\\d+\\.\\d+_\\d+)",
-    "(?i)OpenJDK\\d+U-jdk_x64_linux_hotspot_(\\d+\\.\\d+\\.\\d+_\\d+)",
-]
-
-[[patterns]]
-name = "corretto"
-type = "jdk"
-description = "Amazon Corretto"
-patterns = [
-    "(?i)corretto-(\\d+\\.\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?)",
-    "(?i)amazon-corretto-(\\d+\\.\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?)",
-]
-
-[[patterns]]
-name = "generic-version"
-type = "*"
-description = "Generic semantic versioning"
-patterns = [
-    "(\\d+\\.\\d+\\.\\d+)",
-]
-`
-}
-
 // NewParser creates a new Parser instance by loading patterns from file
-// configPatternsPath is the path from strigo.toml config (can be empty)
-func NewParser(configPatternsPath string) (*Parser, error) {
-	// Ensure patterns file exists
-	if err := EnsurePatternsFile(configPatternsPath); err != nil {
-		logging.LogDebug("⚠️  Failed to ensure patterns file: %v", err)
-		// Continue anyway, will try to load
+// patternsPath should be the resolved path (already prioritized: CLI > env var > config)
+func NewParser(patternsPath string) (*Parser, error) {
+	// Validate that a patterns file path was provided
+	if patternsPath == "" {
+		return nil, fmt.Errorf("patterns file path not configured. Please set 'patterns_file' in strigo.toml, use --patterns flag, or set STRIGO_PATTERNS_PATH environment variable")
 	}
 
-	// Load patterns from file
-	patternsPath := GetPatternsFilePath(configPatternsPath)
+	// Read patterns file
 	file, err := os.ReadFile(patternsPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read patterns file %s: %w", patternsPath, err)
+		return nil, fmt.Errorf("failed to read patterns file %s: %w\n💡 Hint: Create this file with patterns from the documentation or copy strigopatterns.toml from the Strigo repository", patternsPath, err)
 	}
 
 	var config PatternConfig
@@ -165,9 +54,9 @@ func NewParser(configPatternsPath string) (*Parser, error) {
 }
 
 // NewParserWithCustomPatterns creates a parser with additional custom patterns
-// configPatternsPath is the path from strigo.toml config (can be empty)
-func NewParserWithCustomPatterns(configPatternsPath string, customPatterns []Pattern) (*Parser, error) {
-	parser, err := NewParser(configPatternsPath)
+// patternsPath should be the resolved path (already prioritized: CLI > env var > config)
+func NewParserWithCustomPatterns(patternsPath string, customPatterns []Pattern) (*Parser, error) {
+	parser, err := NewParser(patternsPath)
 	if err != nil {
 		return nil, err
 	}

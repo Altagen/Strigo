@@ -3,7 +3,7 @@ log_level = "debug"
 sdk_install_dir = "/tmp/strigo-real-test-sdks"
 cache_dir = "/tmp/strigo-real-test-cache"
 keep_cache = false
-patterns_file = "repository/version/patterns/builtin.toml"
+patterns_file = "strigo-patterns.toml"
 
 # Java certificates paths
 jdk_security_path = "lib/security/cacerts"

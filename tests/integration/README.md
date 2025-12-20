@@ -267,7 +267,7 @@ STRIGO_CONFIG_PATH="$config" ./strigo install sdk newsdk "1.0.0"
 
 ### Adding a new pattern
 
-Update `repository/version/patterns/builtin.toml` with your pattern, then test:
+Update `strigo-patterns.toml` with your pattern, then test:
 
 ```bash
 ./test-e2e-real-sdks.sh
@@ -286,7 +286,7 @@ Update `repository/version/patterns/builtin.toml` with your pattern, then test:
 ## 📚 Related Documentation
 
 - Unit tests: `../unit/`
-- Patterns: `../../repository/version/patterns/builtin.toml`
+- Patterns: `../../strigo-patterns.toml`
 - Main docs: `../../README.md`
 - Configuration: `../../strigo.toml`
 

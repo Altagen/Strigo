@@ -3,7 +3,7 @@ log_level = "debug"
 sdk_install_dir = "/tmp/strigo-e2e-test-sdks"
 cache_dir = "/tmp/strigo-e2e-test-cache"
 keep_cache = false
-patterns_file = "repository/version/patterns/builtin.toml"
+patterns_file = "strigo-patterns.toml"
 jdk_security_path = "lib/security/cacerts"
 system_cacerts_path = "/etc/ssl/certs/ca-certificates.crt"
 

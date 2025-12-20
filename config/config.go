@@ -66,10 +66,18 @@ func ExpandTilde(path string) (string, error) {
 }
 
 // LoadConfig loads and parses the configuration file
-func LoadConfig() (*Config, error) {
-	// Detect configuration file
-	configPath := os.Getenv("STRIGO_CONFIG_PATH")
-	if configPath == "" {
+// Priority: cliPath > STRIGO_CONFIG_PATH env var > ./strigo.toml
+func LoadConfig(cliPath string) (*Config, error) {
+	// Detect configuration file with priority
+	var configPath string
+	if cliPath != "" {
+		// 1. CLI flag has highest priority
+		configPath = cliPath
+	} else if envPath := os.Getenv("STRIGO_CONFIG_PATH"); envPath != "" {
+		// 2. Environment variable
+		configPath = envPath
+	} else {
+		// 3. Default fallback
 		configPath = "strigo.toml"
 	}
 

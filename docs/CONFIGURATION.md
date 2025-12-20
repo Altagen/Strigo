@@ -45,7 +45,7 @@ cache_dir = "~/.cache/strigo"   # Download cache directory
 log_path = ""                   # Optional: log file path (empty = stdout only)
 keep_cache = false              # Keep downloaded files after installation
 shell_config_path = ""          # Optional: shell config file to update
-patterns_file = ""              # Optional: custom patterns file (empty = use builtin)
+patterns_file = "strigo-patterns.toml"  # REQUIRED: Path to version patterns file
 
 # JDK-specific settings
 jdk_security_path = "lib/security/cacerts"           # Path to cacerts in JDK
@@ -216,7 +216,7 @@ cache_dir = "~/.cache/strigo"
 log_path = ""
 keep_cache = false
 shell_config_path = ""
-patterns_file = ""
+patterns_file = "strigo-patterns.toml"
 
 # JDK certificate configuration
 jdk_security_path = "lib/security/cacerts"
@@ -273,30 +273,36 @@ nodejs = {
 
 ## Advanced Configuration
 
-### Custom Patterns File
+### Patterns File Configuration
 
-To use a custom patterns file instead of the built-in patterns:
+The patterns file is **required** and defines how Strigo extracts version numbers from SDK paths.
+
+Configure it in `strigo.toml`:
 
 ```toml
 [general]
-patterns_file = "/path/to/custom-patterns.toml"
+patterns_file = "strigo-patterns.toml"  # Can be absolute or relative path
 ```
 
-Or use an environment variable:
+Or use an environment variable to override:
 
 ```bash
 export STRIGO_PATTERNS_PATH=/path/to/custom-patterns.toml
+strigo available jdk temurin
 ```
 
-See [Custom Patterns](CUSTOM_PATTERNS.md) for pattern file format.
-
-### Environment Variable Override
-
-You can override the patterns file path:
+To get started, copy `strigo-patterns.toml` from the Strigo repository:
 
 ```bash
-STRIGO_PATTERNS_PATH=./my-patterns.toml strigo available jdk temurin
+# From the Strigo project directory
+cp strigo-patterns.toml ~/.config/strigo/strigo-patterns.toml
+
+# Then configure it
+[general]
+patterns_file = "~/.config/strigo/strigo-patterns.toml"
 ```
+
+See [Custom Patterns](CUSTOM_PATTERNS.md) for pattern file format and examples.
 
 ### Shell Integration (Future Feature)
 

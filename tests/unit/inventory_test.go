@@ -14,7 +14,7 @@ import (
 
 // TestInventoryJDKsParsing tests that we can parse all real-world JDK versions from inventory-jdks
 func TestInventoryJDKsParsing(t *testing.T) {
-	parser, err := version.NewParser("")
+	parser, err := version.NewParser("strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Read inventory file
@@ -84,7 +84,7 @@ func TestInventoryJDKsParsing(t *testing.T) {
 
 // TestSpecificInventoryFormats tests specific format categories from the inventory
 func TestSpecificInventoryFormats(t *testing.T) {
-	parser, err := version.NewParser("")
+	parser, err := version.NewParser("strigo-patterns.toml")
 	require.NoError(t, err)
 
 	tests := []struct {
