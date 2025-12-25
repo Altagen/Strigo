@@ -52,6 +52,7 @@ type NexusAsset struct {
 }
 
 // GetAvailableVersions fetches available versions of a JDK from a Nexus repository.
+// It handles pagination using continuationToken to retrieve all assets.
 func (c *NexusClient) GetAvailableVersions(repo config.SDKRepository, registry config.Registry, versionFilter string) ([]SDKAsset, error) {
 	var sdkAssets []SDKAsset
 	var ignoredFiles []string
@@ -65,60 +66,97 @@ func (c *NexusClient) GetAvailableVersions(repo config.SDKRepository, registry c
 	apiURL := strings.ReplaceAll(registry.APIURL, "{repository}", repo.Repository)
 	logging.LogDebug("🔍 API URL after repository replacement: %s", apiURL)
 
-	// Build final request URL with proper URL encoding
-	escapedPath := url.QueryEscape(repo.Path)
-	requestURL := fmt.Sprintf("%s&path=%s", apiURL, escapedPath)
+	// Collect all items across all pages using pagination
+	var allItems []NexusAsset
+	continuationToken := ""
+	pageCount := 0
 
-	logging.LogDebug("🔍 Final Nexus API URL: %s", requestURL)
+	for {
+		pageCount++
+		logging.LogDebug("📄 Fetching page %d from Nexus...", pageCount)
 
-	// Create HTTP request
-	req, err := http.NewRequest("GET", requestURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request: %v", err)
+		// Build request URL with continuation token if present
+		requestURL := apiURL
+		if continuationToken != "" {
+			requestURL = fmt.Sprintf("%s&continuationToken=%s", apiURL, url.QueryEscape(continuationToken))
+		}
+
+		logging.LogDebug("🔍 Nexus API URL: %s", requestURL)
+
+		// Create HTTP request
+		req, err := http.NewRequest("GET", requestURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create HTTP request: %v", err)
+		}
+
+		// Add Basic Auth if credentials are provided
+		if registry.Username != "" && registry.Password != "" {
+			req.SetBasicAuth(registry.Username, registry.Password)
+			if pageCount == 1 {
+				logging.LogDebug("🔐 Using Basic Auth with username: %s", registry.Username)
+			}
+		}
+
+		// Execute request
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query Nexus API: %v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("nexus API returned %d: Check if the path %s exists in Nexus", resp.StatusCode, repo.Path)
+		}
+
+		// Parse JSON response
+		var data struct {
+			Items             []NexusAsset `json:"items"`
+			ContinuationToken string       `json:"continuationToken,omitempty"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+			resp.Body.Close()
+			return nil, fmt.Errorf("failed to decode JSON response: %v", err)
+		}
+		resp.Body.Close()
+
+		logging.LogDebug("📦 Received %d items on page %d", len(data.Items), pageCount)
+
+		// Accumulate items from this page
+		allItems = append(allItems, data.Items...)
+
+		// Check if there are more pages
+		if data.ContinuationToken != "" {
+			continuationToken = data.ContinuationToken
+			logging.LogDebug("➡️  More pages available, continuing pagination...")
+		} else {
+			logging.LogDebug("✅ Pagination complete. Total items: %d", len(allItems))
+			break
+		}
 	}
 
-	// Add Basic Auth if credentials are provided
-	if registry.Username != "" && registry.Password != "" {
-		req.SetBasicAuth(registry.Username, registry.Password)
-		logging.LogDebug("🔐 Using Basic Auth with username: %s", registry.Username)
-	}
-
-	// Execute request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query Nexus API: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("nexus API returned %d: Check if the path %s exists in Nexus", resp.StatusCode, repo.Path)
-	}
-
-	// Parse JSON response
-	var data struct {
-		Items []NexusAsset `json:"items"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, fmt.Errorf("failed to decode JSON response: %v", err)
-	}
-
-	logging.LogDebug("🔍 Raw items from Nexus:")
-	logging.LogDebug("Found %d items in response", len(data.Items))
-	for _, item := range data.Items {
-		logging.LogDebug("Item path: %s, downloadUrl: %s", item.Path, item.DownloadUrl)
-	}
+	// Process all collected items
+	logging.LogDebug("🔍 Processing %d total items from Nexus", len(allItems))
 
 	// Build full path for distribution
 	distributionPath := repo.Path
 	logging.LogDebug("Looking for distribution path: %s", distributionPath)
 
-	for _, item := range data.Items {
+	// Normalize path prefix for matching
+	// Ensure it starts with "/" and doesn't end with "/"
+	pathPrefix := "/" + strings.TrimPrefix(distributionPath, "/")
+	if !strings.HasSuffix(pathPrefix, "/") {
+		pathPrefix = pathPrefix + "/"
+	}
+
+	for _, item := range allItems {
 		logging.LogDebug("   Path: %s", item.Path)
 
-		// Check if the path corresponds to the requested distribution
-		if !strings.Contains(item.Path, distributionPath) && distributionPath != "" {
-			logging.LogDebug("   Ignoring file: path does not contain %s", distributionPath)
+		// Check if the path starts with the requested distribution path
+		// This ensures exact prefix matching (e.g., "/jdk/adoptium/temurin/" matches
+		// "/jdk/adoptium/temurin/17/..." but NOT "/jdk/adoptium/temurin-test/...")
+		if distributionPath != "" && !strings.HasPrefix(item.Path, pathPrefix) {
+			logging.LogDebug("   Ignoring file: path does not start with %s", pathPrefix)
 			ignoredFiles = append(ignoredFiles, item.Path)
 			continue
 		}

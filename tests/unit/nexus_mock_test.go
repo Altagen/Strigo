@@ -29,22 +29,23 @@ func TestNexusClientWithMockServer(t *testing.T) {
 		// Verify request parameters
 		assert.Equal(t, "/service/rest/v1/assets", r.URL.Path)
 		assert.Equal(t, "raw", r.URL.Query().Get("repository"))
-		assert.Contains(t, r.URL.Query().Get("path"), "jdk/adoptium/temurin")
+		// Note: path parameter is NOT sent to Nexus (not supported by API)
+		// Filtering happens client-side instead
 
 		// Return mock response
 		response := mockNexusResponse{
 			Items: []mockNexusItem{
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/adoptium/temurin/OpenJDK11U-jdk_x64_linux_hotspot_11.0.24_8.tar.gz",
-					Path:        "jdk/adoptium/temurin/OpenJDK11U-jdk_x64_linux_hotspot_11.0.24_8.tar.gz",
+					Path:        "/jdk/adoptium/temurin/OpenJDK11U-jdk_x64_linux_hotspot_11.0.24_8.tar.gz",
 				},
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/adoptium/temurin/OpenJDK17U-jdk_x64_linux_hotspot_17.0.15_6.tar.gz",
-					Path:        "jdk/adoptium/temurin/OpenJDK17U-jdk_x64_linux_hotspot_17.0.15_6.tar.gz",
+					Path:        "/jdk/adoptium/temurin/OpenJDK17U-jdk_x64_linux_hotspot_17.0.15_6.tar.gz",
 				},
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/adoptium/temurin/OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz",
-					Path:        "jdk/adoptium/temurin/OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz",
+					Path:        "/jdk/adoptium/temurin/OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz",
 				},
 			},
 		}
@@ -173,15 +174,15 @@ func TestNexusClientVersionFiltering(t *testing.T) {
 			Items: []mockNexusItem{
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/corretto/amazon-corretto-11.0.24.7.1-linux-x64.tar.gz",
-					Path:        "jdk/corretto/amazon-corretto-11.0.24.7.1-linux-x64.tar.gz",
+					Path:        "/jdk/corretto/amazon-corretto-11.0.24.7.1-linux-x64.tar.gz",
 				},
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/corretto/amazon-corretto-17.0.15.8.1-linux-x64.tar.gz",
-					Path:        "jdk/corretto/amazon-corretto-17.0.15.8.1-linux-x64.tar.gz",
+					Path:        "/jdk/corretto/amazon-corretto-17.0.15.8.1-linux-x64.tar.gz",
 				},
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/corretto/amazon-corretto-21.0.9.11.1-linux-x64.tar.gz",
-					Path:        "jdk/corretto/amazon-corretto-21.0.9.11.1-linux-x64.tar.gz",
+					Path:        "/jdk/corretto/amazon-corretto-21.0.9.11.1-linux-x64.tar.gz",
 				},
 			},
 		}
@@ -224,15 +225,15 @@ func TestNexusClientMixedVersionFormats(t *testing.T) {
 			Items: []mockNexusItem{
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/test/jdk-11.0.24_8-linux.tar.gz",
-					Path:        "jdk/test/jdk-11.0.24_8-linux.tar.gz",
+					Path:        "/jdk/test/jdk-11.0.24_8-linux.tar.gz",
 				},
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/test/jdk-17.0.15.tar.gz",
-					Path:        "jdk/test/jdk-17.0.15.tar.gz",
+					Path:        "/jdk/test/jdk-17.0.15.tar.gz",
 				},
 				{
 					DownloadURL: "http://nexus.example.com/repository/raw/jdk/test/some-random-file.txt",
-					Path:        "jdk/test/some-random-file.txt",
+					Path:        "/jdk/test/some-random-file.txt",
 				},
 			},
 		}
