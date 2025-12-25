@@ -35,3 +35,10 @@ strigo-test.toml
 
 # Coverage files
 coverage.out
+
+# Test utility scripts (one-shot data population)
+download-jdks.sh
+upload-*.sh
+
+# Test artifacts
+~
