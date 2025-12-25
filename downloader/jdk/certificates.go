@@ -83,14 +83,18 @@ func (cm *CertificateManager) InjectCertificates(jdkRootPath string, customCerts
 
 	if totalCertsAdded == 0 {
 		// Restore backup since no certificates were added
-		os.Rename(backupPath, cacertsPath)
+		if err := os.Rename(backupPath, cacertsPath); err != nil {
+			logging.LogDebug("⚠️  Failed to restore backup: %v", err)
+		}
 		return fmt.Errorf("no certificates were successfully added")
 	}
 
 	// Step 6: Save updated keystore
 	if err := cm.saveKeystore(ks, cacertsPath, actualPassword); err != nil {
 		// Restore backup on failure
-		os.Rename(backupPath, cacertsPath)
+		if restoreErr := os.Rename(backupPath, cacertsPath); restoreErr != nil {
+			logging.LogDebug("⚠️  Failed to restore backup: %v", restoreErr)
+		}
 		return fmt.Errorf("failed to save keystore: %w", err)
 	}
 
