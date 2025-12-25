@@ -6,11 +6,24 @@ import (
 	"path/filepath"
 	"strigo/downloader"
 	"strigo/downloader/core"
+	"strigo/downloader/jdk"
 	"strigo/logging"
 	"strigo/repository"
 
 	"github.com/spf13/cobra"
 )
+
+var (
+	jdkCacertsPath     string
+	jdkCacertsPassword string
+	nodeExtraCaCerts   string
+)
+
+func init() {
+	installCmd.Flags().StringVar(&jdkCacertsPath, "jdk-cacerts-path", "", "Override cacerts path in JDK (e.g., 'jre/lib/security/cacerts' for Java 8)")
+	installCmd.Flags().StringVar(&jdkCacertsPassword, "jdk-cacerts-password", "", "Override cacerts password (default: 'changeit', use '' for password-less PKCS12)")
+	installCmd.Flags().StringVar(&nodeExtraCaCerts, "node-extra-ca-certs", "", "Path to PEM bundle for Node.js extra CA certificates (supports multiple certificates)")
+}
 
 var installCmd = &cobra.Command{
 	Use:   "install [type] [distribution] [version]",
@@ -132,12 +145,6 @@ func handleInstall(sdkType, distribution, version string) error {
 		return fmt.Errorf("failed to create installation directory: %w", err)
 	}
 
-	// Prepare certificate configuration
-	certConfig := core.CertConfig{
-		JDKSecurityPath:   cfg.General.JDKSecurityPath,
-		SystemCacertsPath: cfg.General.SystemCacertsPath,
-	}
-
 	// Download and extract - create manager with auth if credentials are provided
 	var manager *downloader.Manager
 	if registry.Username != "" && registry.Password != "" {
@@ -155,7 +162,6 @@ func handleInstall(sdkType, distribution, version string) error {
 		Distribution: distribution,
 		Version:      version,
 		KeepCache:    cfg.General.KeepCache,
-		CertConfig:   certConfig,
 		Username:     registry.Username,
 		Password:     registry.Password,
 	}
@@ -168,8 +174,8 @@ func handleInstall(sdkType, distribution, version string) error {
 		return fmt.Errorf("installation failed: %w", err)
 	}
 
-	// For JDKs, manage certificates
-	if sdkType == "jdk" {
+	// For JDKs, inject custom certificates if configured
+	if sdkType == "jdk" && len(cfg.General.CustomCertificates) > 0 {
 		// Find the extracted JDK folder
 		entries, err := os.ReadDir(installPath)
 		if err != nil {
@@ -179,7 +185,7 @@ func handleInstall(sdkType, distribution, version string) error {
 		// JDK directory selection logic
 		var jdkDir string
 		dirCount := 0
-		
+
 		// Count directories and remember the first one
 		for _, entry := range entries {
 			if entry.IsDir() {
@@ -190,36 +196,94 @@ func handleInstall(sdkType, distribution, version string) error {
 				}
 			}
 		}
-		
+
 		// If multiple directories exist, it's ambiguous
 		if dirCount > 1 {
 			jdkDir = ""
 		}
 
 		if jdkDir == "" {
-			return fmt.Errorf("could not find JDK directory in %s", installPath)
+			logging.LogDebug("⚠️  Could not find JDK directory, skipping certificate injection")
+		} else {
+			// Use the full path for the JDK root
+			jdkPath := filepath.Join(installPath, jdkDir)
+
+			// Determine path override (CLI takes precedence over config)
+			pathOverride := jdkCacertsPath
+			if pathOverride == "" {
+				pathOverride = cfg.General.JDKCacertsOverride
+			}
+
+			// Determine password (CLI takes precedence over config, default to "changeit")
+			password := jdkCacertsPassword
+			if password == "" {
+				password = cfg.General.JDKCacertsPassword
+			}
+			if password == "" {
+				password = "changeit"
+			}
+
+			// Create certificate manager and inject certificates
+			certManager := jdk.NewCertificateManager()
+			err := certManager.InjectCertificates(
+				jdkPath,
+				cfg.General.CustomCertificates,
+				pathOverride,
+				password,
+			)
+
+			if err != nil {
+				// Non-fatal: log warning but continue installation
+				logging.LogDebug("⚠️  Certificate injection failed: %v", err)
+				logging.LogInfo("ℹ️  JDK installation is complete but custom certificates were not injected")
+				logging.LogInfo("💡 You can manually add certificates using Java's keytool if needed")
+			}
+		}
+	} else if sdkType == "jdk" {
+		logging.LogDebug("📋 No custom certificates configured, JDK will use default certificate store")
+	}
+
+	// Handle Node.js certificate configuration
+	if sdkType == "node" && nodeExtraCaCerts != "" {
+		// Validate the certificate path exists
+		if _, err := os.Stat(nodeExtraCaCerts); os.IsNotExist(err) {
+			logging.LogDebug("⚠️  Node.js certificate file not found: %s", nodeExtraCaCerts)
+			logging.LogInfo("ℹ️  Node.js installed but certificate path is invalid")
+		} else {
+			logging.LogDebug("📋 Node.js will use extra CA certificates from: %s", nodeExtraCaCerts)
+		}
+	}
+
+	// Save metadata for the installation
+	metadata := downloader.SDKMetadata{
+		SDKType:      sdkType,
+		Distribution: distribution,
+		Version:      version,
+	}
+
+	// Add Node.js specific metadata if provided
+	if sdkType == "node" && nodeExtraCaCerts != "" {
+		// Expand tilde if present and convert to absolute path
+		expandedPath := nodeExtraCaCerts
+		if len(nodeExtraCaCerts) > 0 && nodeExtraCaCerts[0] == '~' {
+			home, err := os.UserHomeDir()
+			if err == nil {
+				expandedPath = filepath.Join(home, nodeExtraCaCerts[1:])
+			}
 		}
 
-		// Use the full path for certificates
-		jdkPath := filepath.Join(installPath, jdkDir)
-		jdkSecPath := filepath.Join(jdkPath, cfg.General.JDKSecurityPath)
-
-		// 1. Remove default JDK certificates
-		logging.LogDebug("🗑️ Removing default JDK certificates...")
-		if err := os.RemoveAll(jdkSecPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("failed to remove default certificates: %w", err)
+		// Make path absolute
+		absPath, err := filepath.Abs(expandedPath)
+		if err == nil {
+			metadata.NodeExtraCaCerts = absPath
+		} else {
+			metadata.NodeExtraCaCerts = expandedPath
 		}
+	}
 
-		// 2. Create a symbolic link to system certificates
-		logging.LogDebug("🔗 Creating link to system certificates...")
-		if err := os.MkdirAll(filepath.Dir(jdkSecPath), 0755); err != nil {
-			return fmt.Errorf("failed to create security directory: %w", err)
-		}
-
-		if err := os.Symlink(cfg.General.SystemCacertsPath, jdkSecPath); err != nil {
-			return fmt.Errorf("failed to create symlink to system certificates: %w", err)
-		}
-		logging.LogInfo("✅ Successfully linked system certificates")
+	if err := downloader.SaveMetadata(installPath, metadata); err != nil {
+		logging.LogDebug("⚠️  Failed to save installation metadata: %v", err)
+		// Non-fatal, continue
 	}
 
 	logging.LogInfo("✅ Successfully installed %s %s version %s", sdkType, distribution, version)
