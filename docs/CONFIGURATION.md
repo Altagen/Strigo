@@ -47,9 +47,13 @@ keep_cache = false              # Keep downloaded files after installation
 shell_config_path = ""          # Optional: shell config file to update
 patterns_file = "strigo-patterns.toml"  # REQUIRED: Path to version patterns file
 
-# JDK-specific settings
-jdk_security_path = "lib/security/cacerts"           # Path to cacerts in JDK
-system_cacerts_path = "/etc/ssl/certs/ca-certificates.crt"  # System CA certificates
+# Optional: Custom certificates for JDK installations
+custom_certificates = [
+    { path = "/etc/ssl/corporate/root-ca.pem", alias = "corporate-root-ca" },
+    { path = "/etc/ssl/corporate/intermediate-ca.pem", alias = "corporate-intermediate-ca" }
+]
+jdk_cacerts_password = "changeit"  # Optional: keystore password (default: "changeit", "" for password-less)
+jdk_cacerts_override = ""          # Optional: override cacerts path for edge cases
 ```
 
 ### Path Expansion
@@ -66,16 +70,37 @@ system_cacerts_path = "/etc/ssl/certs/ca-certificates.crt"  # System CA certific
 
 ### Certificate Management (JDK only)
 
-Strigo automatically configures JDK installations to use system certificates:
+Strigo can optionally inject custom CA certificates into JDK installations. This is useful in corporate environments with internal CAs.
 
-- `jdk_security_path`: Relative path to `cacerts` file within JDK installation
-- `system_cacerts_path`: Absolute path to system CA certificates file
+**Configuration**:
+```toml
+[general]
+# Optional: Custom certificates with explicit aliases
+custom_certificates = [
+    { path = "/etc/ssl/corporate/root-ca.pem", alias = "corporate-root-ca" },
+    { path = "/etc/ssl/internal-ca.pem", alias = "internal-ca" }
+]
 
-On installation, Strigo:
-1. Removes the default JDK `cacerts` file
-2. Creates a symlink to the system certificates
+# Optional: Keystore password (default: "changeit")
+jdk_cacerts_password = "changeit"
 
-This ensures JDKs use up-to-date system certificates.
+# Optional: Override cacerts path detection (rarely needed)
+jdk_cacerts_override = ""
+```
+
+**How it works**:
+1. **Non-destructive**: Adds certificates to existing keystore (preserves default JDK CAs)
+2. **Automatic backup**: Creates `cacerts.original` before modification
+3. **Auto-detection**: Finds cacerts location automatically (Java 8: `jre/lib/security/cacerts`, Java 11+: `lib/security/cacerts`)
+4. **Format**: PEM files only (one certificate per file)
+5. **Explicit aliases**: Each certificate must have a unique alias for security audits
+
+**If not configured**: JDKs are installed with their default keystores unchanged.
+
+**CLI override** (for testing or edge cases):
+```bash
+strigo install jdk temurin 17.0.13_11 --jdk-cacerts-path "lib/security/cacerts" --jdk-cacerts-password "mypassword"
+```
 
 ## SDK Types
 
@@ -206,7 +231,7 @@ Strigo uses pattern files to extract version numbers from paths. See [Custom Pat
 
 ## Complete Example
 
-Here's a full configuration file:
+Here's a full configuration file (see [examples/](../examples/) for more examples):
 
 ```toml
 [general]
@@ -218,9 +243,11 @@ keep_cache = false
 shell_config_path = ""
 patterns_file = "strigo-patterns.toml"
 
-# JDK certificate configuration
-jdk_security_path = "lib/security/cacerts"
-system_cacerts_path = "/etc/ssl/certs/ca-certificates.crt"
+# Optional: Custom certificates for corporate environments
+custom_certificates = [
+    { path = "/etc/ssl/corporate/root-ca.pem", alias = "corporate-root-ca" }
+]
+jdk_cacerts_password = "changeit"
 
 [sdk_types]
 jdk = { type = "jdk", install_dir = "jdks" }
@@ -339,11 +366,27 @@ If SDKs aren't found:
 
 ### Certificate Errors (JDK)
 
-If Java applications can't connect to HTTPS sites:
+If Java applications can't connect to HTTPS sites after installing custom certificates:
 
-1. Verify `system_cacerts_path` points to your system CA bundle
-2. Check the file exists: `ls -la /etc/ssl/certs/ca-certificates.crt`
-3. Ensure the symlink was created: `ls -la ~/.sdks/jdks/temurin/11.0.24_8/*/lib/security/cacerts`
+1. **Verify certificates were injected**:
+   ```bash
+   keytool -list -keystore ~/.sdks/jdks/temurin/17.0.13_11/*/lib/security/cacerts -storepass changeit | grep your-alias
+   ```
+
+2. **Check backup was created**:
+   ```bash
+   ls -la ~/.sdks/jdks/temurin/17.0.13_11/*/lib/security/cacerts.original
+   ```
+
+3. **Verify certificate file paths** in `custom_certificates` configuration
+
+4. **Check password**: If using custom keystore password, ensure `jdk_cacerts_password` is correct
+
+5. **Restore from backup** if needed:
+   ```bash
+   cd ~/.sdks/jdks/temurin/17.0.13_11/*/lib/security/
+   mv cacerts.original cacerts
+   ```
 
 ## See Also
 

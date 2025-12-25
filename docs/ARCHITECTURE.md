@@ -37,13 +37,11 @@ strigo/
 │
 ├── repository/             # Registry abstraction layer
 │   ├── fetcher.go         # Generic asset fetching
-│   ├── nexus.go           # Nexus-specific implementation
+│   ├── nexus.go           # Nexus-specific implementation with pagination
 │   ├── types.go           # Common types (SDKAsset, etc.)
 │   └── version/           # Version extraction
 │       ├── parser.go      # Pattern-based version parsing
-│       ├── extractor.go   # Version extraction logic
-│       └── patterns/
-│           └── builtin.toml  # Built-in version patterns
+│       └── extractor.go   # Version extraction logic
 │
 ├── downloader/             # Download & installation
 │   ├── manager.go         # Orchestrates download process
@@ -62,11 +60,23 @@ strigo/
 ├── logging/                # Structured logging
 │   └── logger.go          # Logger implementation
 │
-└── tests/                  # Test suites
-    ├── unit/              # Unit tests
-    └── integration/       # Integration tests
-        ├── test-e2e-real-sdks.sh    # E2E tests with real SDKs
-        └── run-integration-tests.sh  # Mock integration tests
+├── tests/                  # Test suites
+│   ├── unit/              # Unit tests
+│   └── integration/       # Integration tests
+│       ├── test-e2e-real-sdks.sh    # E2E tests with real SDKs
+│       ├── test-regression-e2e.sh   # Regression tests
+│       ├── test-pagination-e2e.sh   # Pagination tests
+│       ├── run-integration-tests.sh # Mock integration tests
+│       ├── strigo-e2e-test.toml     # E2E test configuration
+│       └── strigo-test-variants.toml # Variant repositories example
+│
+├── examples/               # Configuration examples
+│   ├── strigo-basic.toml           # Minimal configuration
+│   ├── strigo-with-certificates.toml # With custom certificates
+│   ├── strigo-multi-sdk.toml       # Multiple SDK types
+│   └── README.md                    # Examples documentation
+│
+└── strigo-patterns.toml    # Version extraction patterns
 ```
 
 ## Core Components
@@ -141,15 +151,16 @@ func FetchAvailableVersions(
 ```
 
 #### `nexus.go` - Nexus Implementation
-- Constructs Nexus API URLs
-- Handles authentication
-- Parses JSON responses
-- Filters by path prefix
+- Constructs Nexus API URLs with continuationToken pagination
+- Handles authentication (HTTP Basic Auth)
+- Parses JSON responses across multiple pages
+- Client-side filtering by path prefix (strict `HasPrefix` matching)
+- Accumulates all items before processing (handles >100 items per repository)
 
 #### `version/` - Version Extraction
-- **`parser.go`**: Loads and manages regex patterns
+- **`parser.go`**: Loads and manages regex patterns from external file
 - **`extractor.go`**: Extracts versions from file paths
-- **`patterns/builtin.toml`**: Pattern definitions
+- Patterns loaded from `strigo-patterns.toml` (configurable via `patterns_file` setting)
 
 **Pattern Matching Flow:**
 ```
@@ -187,9 +198,14 @@ func (m *Manager) DownloadAndExtract(opts DownloadOptions) error {
 - Creates cache directory structure
 - Cleanup based on `keep_cache` setting
 
-#### `jdk/certificates.go` - JDK Configuration
-- Removes default `cacerts`
-- Creates symlink to system certificates
+#### `jdk/certificates.go` - JDK Certificate Management
+- **Optional**: Only runs if `custom_certificates` configured
+- **Non-destructive**: Adds certificates to existing keystore (preserves JDK default CAs)
+- **Auto-detection**: Finds `cacerts` automatically (Java 8: `jre/lib/security/cacerts`, Java 11+: `lib/security/cacerts`)
+- **Backup**: Creates `cacerts.original` before modification
+- **Format**: PEM files with explicit aliases for security audits
+- **Configurable password**: Supports custom keystore passwords or password-less PKCS12
+- Uses `keystore-go` library for safe keystore manipulation
 
 ### 5. Logging (`logging/`)
 
