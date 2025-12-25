@@ -1,0 +1,38 @@
+# Strigo Basic Configuration Example
+# This is a minimal configuration file to get started with Strigo.
+
+[general]
+log_level = "info"
+sdk_install_dir = "~/.sdks"
+cache_dir = "~/.cache/strigo"
+keep_cache = false
+patterns_file = "strigo-patterns.toml"
+
+[sdk_types]
+jdk = {
+    type = "jdk",
+    install_dir = "jdks"
+}
+
+[registries]
+nexus = {
+    type = "nexus",
+    api_url = "http://localhost:8081/service/rest/v1/assets?repository={repository}",
+    username = "admin",
+    password = "admin"
+}
+
+[sdk_repositories]
+temurin = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/adoptium/temurin"
+}
+
+corretto = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/amazon/corretto"
+}

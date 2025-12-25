@@ -439,15 +439,17 @@ run_tests() {
 cleanup() {
     print_header "CLEANING UP"
 
-    print_info "Stopping Nexus container..."
-    podman stop "$NEXUS_CONTAINER_NAME" 2>/dev/null || true
-    podman rm "$NEXUS_CONTAINER_NAME" 2>/dev/null || true
+    print_info "⚠️  Keeping Nexus container running (with downloaded JDKs)"
+    print_info "   To stop Nexus manually: podman stop $NEXUS_CONTAINER_NAME"
 
-    print_info "Removing test directories..."
-    rm -rf "$DOWNLOAD_DIR" "$TEST_INSTALL_DIR" "$TEST_CACHE_DIR"
+    print_info "⚠️  Keeping downloads in $DOWNLOAD_DIR for reuse"
+    print_info "   To remove: rm -rf $DOWNLOAD_DIR"
+
+    print_info "Removing test SDK installations and cache..."
+    rm -rf "$TEST_INSTALL_DIR" "$TEST_CACHE_DIR"
     rm -f "$PROJECT_ROOT/strigo-e2e-test.toml"
 
-    print_success "Cleanup completed"
+    print_success "Cleanup completed (Nexus & downloads preserved)"
 }
 
 # Main execution

@@ -10,6 +10,12 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
+// CertificateEntry represents a custom certificate with its explicit alias
+type CertificateEntry struct {
+	Path  string `toml:"path"`  // Path to the PEM certificate file
+	Alias string `toml:"alias"` // Unique alias in the keystore
+}
+
 // GeneralConfig holds general configuration parameters
 type GeneralConfig struct {
 	LogLevel          string `toml:"log_level"`
@@ -17,10 +23,13 @@ type GeneralConfig struct {
 	CacheDir          string `toml:"cache_dir"`
 	LogPath           string `toml:"log_path"`
 	KeepCache         bool   `toml:"keep_cache"`
-	JDKSecurityPath   string `toml:"jdk_security_path"`
-	SystemCacertsPath string `toml:"system_cacerts_path"`
 	ShellConfigPath   string `toml:"shell_config_path"`
 	PatternsFile      string `toml:"patterns_file"` // Path to strigopatterns.toml (default: strigopatterns.toml)
+
+	// Optional custom certificates with explicit aliases
+	CustomCertificates []CertificateEntry `toml:"custom_certificates"`
+	JDKCacertsOverride string             `toml:"jdk_cacerts_override"` // Optional CLI path override
+	JDKCacertsPassword string             `toml:"jdk_cacerts_password"` // Keystore password (default: "changeit")
 }
 
 // SDKType represents a referenced SDK type configuration
@@ -189,17 +198,34 @@ func (c *Config) Validate() error {
 		c.General.ShellConfigPath = expandedPath
 	}
 
-	// Check that required paths for JDKs are defined
-	if c.General.JDKSecurityPath == "" {
-		return fmt.Errorf("jdk_security_path must be set")
-	}
-	if c.General.SystemCacertsPath == "" {
-		return fmt.Errorf("system_cacerts_path must be set")
+	// Validate custom certificates if provided
+	if len(c.General.CustomCertificates) > 0 {
+		for i, certEntry := range c.General.CustomCertificates {
+			// Validate alias is not empty
+			if certEntry.Alias == "" {
+				return fmt.Errorf("custom_certificates[%d]: alias cannot be empty", i)
+			}
+
+			// Expand tilde in certificate path
+			expandedPath, err := ExpandTilde(certEntry.Path)
+			if err != nil {
+				return fmt.Errorf("failed to expand certificate path %s: %w", certEntry.Path, err)
+			}
+
+			// Check if certificate file exists
+			if _, err := os.Stat(expandedPath); err != nil {
+				return fmt.Errorf("certificate file not found: %s", expandedPath)
+			}
+
+			// Update with expanded path
+			c.General.CustomCertificates[i].Path = expandedPath
+		}
 	}
 
-	// Check if system_cacerts_path exists
-	if _, err := os.Stat(c.General.SystemCacertsPath); os.IsNotExist(err) {
-		return fmt.Errorf("system_cacerts_path does not exist: %s", c.General.SystemCacertsPath)
+	// Set default password if not provided
+	if c.General.JDKCacertsPassword == "" && len(c.General.CustomCertificates) > 0 {
+		c.General.JDKCacertsPassword = "changeit"
+		logging.PreLog("DEBUG", "Using default JDK cacerts password: changeit")
 	}
 
 	return nil

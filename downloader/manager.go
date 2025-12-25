@@ -86,15 +86,9 @@ func (m *Manager) DownloadAndExtract(opts core.DownloadOptions) error {
 		logging.LogDebug("⚠️ Cache cleanup failed: %v", err)
 	}
 
-	// Configure certificates if needed
-	if opts.SDKType == "jdk" {
-		if err := m.certificates.SetupCertificates(opts.InstallPath, opts.CertConfig); err != nil {
-			logging.LogDebug("⚠️ Certificate setup failed: %v", err)
-			logging.LogInfo("ℹ️ JDK installation is complete but certificates were not configured")
-		}
-	}
+	// Certificate injection is now handled in cmd/install.go after extraction
+	// This allows for proper path detection and optional certificate management
 
-	logging.LogInfo("✅ Successfully installed %s %s version %s", opts.SDKType, opts.Distribution, opts.Version)
-	logging.LogInfo("📂 Installation path: %s", opts.InstallPath)
+	logging.LogInfo("✅ Successfully extracted %s %s version %s", opts.SDKType, opts.Distribution, opts.Version)
 	return nil
 }

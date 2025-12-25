@@ -28,3 +28,17 @@ strigo-base.toml
 strigo
 strigo.exe
 CHANGELOG.md
+strigo-new
+
+# Test configs with temporary paths
+strigo-test.toml
+
+# Coverage files
+coverage.out
+
+# Test utility scripts (one-shot data population)
+download-jdks.sh
+upload-*.sh
+
+# Test artifacts
+~

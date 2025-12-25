@@ -11,7 +11,7 @@ import (
 
 // TestCaseInsensitivePatterns tests that patterns work with different case variations
 func TestCaseInsensitivePatterns(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -110,7 +110,7 @@ func TestCaseInsensitivePatterns(t *testing.T) {
 
 // TestCaseInsensitiveRealWorldScenarios tests real-world repository scenarios
 func TestCaseInsensitiveRealWorldScenarios(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	scenarios := []struct {
@@ -159,7 +159,7 @@ func TestCaseInsensitiveRealWorldScenarios(t *testing.T) {
 
 // TestCaseInsensitiveWithInventory validates that case-insensitive works with inventory
 func TestCaseInsensitiveWithInventory(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Simulate variations of inventory entries
