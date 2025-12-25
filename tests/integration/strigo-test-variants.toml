@@ -1,0 +1,48 @@
+[general]
+log_level = "debug"
+sdk_install_dir = "/tmp/strigo-e2e-test-sdks"
+cache_dir = "/tmp/strigo-e2e-test-cache"
+keep_cache = false
+patterns_file = "strigo-patterns.toml"
+
+custom_certificates = [
+    { path = "/tmp/strigo-test-certs/test-cert.pem", alias = "strigo-test-ca" }
+]
+
+[sdk_types]
+jdk = {
+    type = "jdk",
+    install_dir = "jdks"
+}
+
+[registries]
+nexus = {
+    type = "nexus",
+    api_url = "http://localhost:8081/service/rest/v1/assets?repository={repository}",
+    username = "admin",
+    password = "admin"
+}
+
+[sdk_repositories]
+# Repository principal
+temurin = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/adoptium/temurin"
+}
+
+# Variantes pour tests (v1, v2, etc.)
+temurin-v1 = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/adoptium/temurin-v1"
+}
+
+temurin-v2 = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/adoptium/temurin-v2"
+}
