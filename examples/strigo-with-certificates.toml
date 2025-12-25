@@ -1,0 +1,49 @@
+# Strigo Configuration with Custom Certificates
+# This example shows how to inject custom CA certificates into JDK installations.
+
+[general]
+log_level = "info"
+sdk_install_dir = "~/.sdks"
+cache_dir = "~/.cache/strigo"
+keep_cache = false
+patterns_file = "strigo-patterns.toml"
+
+# Optional: Custom certificates to inject into JDK keystores
+# Each certificate needs an explicit alias for tracking and security audits
+custom_certificates = [
+    { path = "/etc/ssl/corporate/root-ca.pem", alias = "corporate-root-ca" },
+    { path = "/etc/ssl/corporate/intermediate-ca.pem", alias = "corporate-intermediate-ca" }
+]
+
+# Optional: Override cacerts password (default: "changeit")
+# Use "" for password-less PKCS12 keystores (Java 17+)
+jdk_cacerts_password = "changeit"
+
+[sdk_types]
+jdk = {
+    type = "jdk",
+    install_dir = "jdks"
+}
+
+[registries]
+nexus = {
+    type = "nexus",
+    api_url = "http://localhost:8081/service/rest/v1/assets?repository={repository}",
+    username = "admin",
+    password = "admin"
+}
+
+[sdk_repositories]
+temurin = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/adoptium/temurin"
+}
+
+corretto = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/amazon/corretto"
+}

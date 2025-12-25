@@ -1,0 +1,66 @@
+# Strigo Multi-SDK Configuration Example
+# This example shows how to configure multiple SDK types (JDK and Node.js).
+
+[general]
+log_level = "info"
+sdk_install_dir = "~/.sdks"
+cache_dir = "~/.cache/strigo"
+keep_cache = false
+patterns_file = "strigo-patterns.toml"
+
+[sdk_types]
+jdk = {
+    type = "jdk",
+    install_dir = "jdks"
+}
+
+node = {
+    type = "node",
+    install_dir = "nodes"
+}
+
+[registries]
+nexus = {
+    type = "nexus",
+    api_url = "http://localhost:8081/service/rest/v1/assets?repository={repository}",
+    username = "admin",
+    password = "admin"
+}
+
+[sdk_repositories]
+# JDK distributions
+temurin = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/adoptium/temurin"
+}
+
+corretto = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/amazon/corretto"
+}
+
+zulu = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/azul/zulu"
+}
+
+mandrel = {
+    registry = "nexus",
+    repository = "raw",
+    type = "jdk",
+    path = "jdk/graalvm/mandrel"
+}
+
+# Node.js
+nodejs = {
+    registry = "nexus",
+    repository = "raw",
+    type = "node",
+    path = "node"
+}
