@@ -9,7 +9,7 @@ import (
 )
 
 func TestParserInitialization(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err, "Parser should initialize without error")
 	assert.NotNil(t, parser, "Parser should not be nil")
 
@@ -18,7 +18,7 @@ func TestParserInitialization(t *testing.T) {
 }
 
 func TestExtractVersionTemurin(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -57,7 +57,7 @@ func TestExtractVersionTemurin(t *testing.T) {
 }
 
 func TestExtractVersionCorretto(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -96,7 +96,7 @@ func TestExtractVersionCorretto(t *testing.T) {
 }
 
 func TestExtractVersionZulu(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	path := "/jdk/azul/zulu/zulu11.74.15-ca-jdk11.0.24-linux_x64.tar.gz"
@@ -107,7 +107,7 @@ func TestExtractVersionZulu(t *testing.T) {
 }
 
 func TestExtractVersionNodeJS(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -146,7 +146,7 @@ func TestExtractVersionNodeJS(t *testing.T) {
 }
 
 func TestExtractVersionByType(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Test filtering by type
@@ -171,7 +171,7 @@ func TestExtractVersionByType(t *testing.T) {
 }
 
 func TestExtractVersionByDistribution(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Test filtering by distribution
@@ -196,7 +196,7 @@ func TestExtractVersionByDistribution(t *testing.T) {
 }
 
 func TestExtractVersionLegacyJava8(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Test legacy Java 8 format (8u442b06) - use a filename with the full version
@@ -208,7 +208,7 @@ func TestExtractVersionLegacyJava8(t *testing.T) {
 }
 
 func TestExtractVersionGraalVM(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -238,7 +238,7 @@ func TestExtractVersionGraalVM(t *testing.T) {
 }
 
 func TestExtractVersionErrorCases(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Test paths that should not match any pattern
@@ -257,7 +257,7 @@ func TestExtractVersionErrorCases(t *testing.T) {
 }
 
 func TestGetPatternsByType(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	jdkPatterns := parser.GetPatternsByType("jdk")
@@ -274,7 +274,7 @@ func TestGetPatternsByType(t *testing.T) {
 }
 
 func TestGetPatternByName(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Test getting existing pattern
@@ -299,7 +299,7 @@ func TestNewParserWithCustomPatterns(t *testing.T) {
 		},
 	}
 
-	parser, err := version.NewParserWithCustomPatterns("strigo-patterns.toml", customPatterns)
+	parser, err := version.NewParserWithCustomPatterns("../../strigo-patterns.toml", customPatterns)
 	require.NoError(t, err)
 	assert.NotNil(t, parser)
 
@@ -322,7 +322,7 @@ func TestNewParserWithCustomPatterns(t *testing.T) {
 }
 
 func TestMultipleDistributions(t *testing.T) {
-	parser, err := version.NewParser("strigo-patterns.toml")
+	parser, err := version.NewParser("../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Test that parser can handle many different distributions

@@ -69,7 +69,7 @@ func TestNexusClientWithMockServer(t *testing.T) {
 	}
 
 	// Fetch versions
-	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "strigo-patterns.toml")
+	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "../../strigo-patterns.toml")
 	require.NoError(t, err)
 	require.NotNil(t, assets)
 
@@ -109,7 +109,7 @@ func TestNexusClientEmptyResponse(t *testing.T) {
 		Path:       "jdk/test/empty",
 	}
 
-	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "strigo-patterns.toml")
+	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "../../strigo-patterns.toml")
 	require.Error(t, err, "Should return error when no versions found")
 	assert.Contains(t, err.Error(), "no versions found")
 	assert.Nil(t, assets)
@@ -135,7 +135,7 @@ func TestNexusClientHTTPError(t *testing.T) {
 		Path:       "jdk/test/error",
 	}
 
-	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "strigo-patterns.toml")
+	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "../../strigo-patterns.toml")
 	require.Error(t, err)
 	assert.Nil(t, assets)
 	assert.Contains(t, err.Error(), "nexus API returned 500")
@@ -161,7 +161,7 @@ func TestNexusClientInvalidJSON(t *testing.T) {
 		Path:       "jdk/test/invalid",
 	}
 
-	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "strigo-patterns.toml")
+	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "../../strigo-patterns.toml")
 	require.Error(t, err)
 	assert.Nil(t, assets)
 	assert.Contains(t, err.Error(), "failed to decode JSON response")
@@ -204,7 +204,7 @@ func TestNexusClientVersionFiltering(t *testing.T) {
 	}
 
 	// Fetch all versions
-	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "strigo-patterns.toml")
+	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "../../strigo-patterns.toml")
 	require.NoError(t, err)
 	assert.Len(t, assets, 3)
 
@@ -254,7 +254,7 @@ func TestNexusClientMixedVersionFormats(t *testing.T) {
 		Path:       "jdk/test",
 	}
 
-	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "strigo-patterns.toml")
+	assets, err := repository.FetchAvailableVersions(repo, registry, "", true, "../../strigo-patterns.toml")
 	require.NoError(t, err)
 
 	// Should only extract versions from files with recognizable patterns
@@ -288,7 +288,7 @@ func TestNexusClientNetworkTimeout(t *testing.T) {
 		Path:       "jdk/test/timeout",
 	}
 
-	_, err := repository.FetchAvailableVersions(repo, registry, "", true, "strigo-patterns.toml")
+	_, err := repository.FetchAvailableVersions(repo, registry, "", true, "../../strigo-patterns.toml")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "timeout")
 }
