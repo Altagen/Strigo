@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strigo/downloader"
 	"strigo/logging"
 	"strings"
 
@@ -199,14 +200,26 @@ func handleUnset(sdkType string) error {
 	lines := strings.Split(string(content), "\n")
 	var newLines []string
 	var removed bool
+	inStrigoBlock := false
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 		// If we find the Strigo comment
 		if strings.Contains(line, fmt.Sprintf("# Added by Strigo - %s configuration", strings.ToUpper(sdkType))) {
-			// Skip this line and the next two
-			i += 2 // +2 because the loop will do +1
+			inStrigoBlock = true
 			removed = true
 			continue
+		}
+		// Skip all export lines in the Strigo block
+		if inStrigoBlock {
+			if strings.HasPrefix(strings.TrimSpace(line), "export ") {
+				continue
+			} else if strings.TrimSpace(line) == "" {
+				// Empty line marks end of block
+				inStrigoBlock = false
+				continue
+			}
+			// If we encounter a non-export, non-empty line, block has ended
+			inStrigoBlock = false
 		}
 		newLines = append(newLines, line)
 	}
@@ -270,9 +283,16 @@ func handleUse(sdkType, distribution, version string) error {
 
 	logging.LogInfo("✅ Successfully set %s %s version %s as active", sdkType, distribution, version)
 
+	// Load metadata for the installation
+	metadata, err := downloader.LoadMetadata(installPath)
+	if err != nil {
+		logging.LogDebug("⚠️  Failed to load installation metadata: %v", err)
+		// Non-fatal, continue with default behavior
+	}
+
 	// If --set-env is specified, configure the environment variables
 	if setEnvVar {
-		if err := configureEnvironment(sdkType, sdkPath); err != nil {
+		if err := configureEnvironment(sdkType, sdkPath, metadata); err != nil {
 			return fmt.Errorf("failed to configure environment: %w", err)
 		}
 	} else {
@@ -286,6 +306,9 @@ func handleUse(sdkType, distribution, version string) error {
 			logging.LogInfo("ℹ️  To use this Node.js version, set these environment variables:")
 			logging.LogInfo("   export NODE_HOME=%s", sdkPath)
 			logging.LogInfo("   export PATH=$NODE_HOME/bin:$PATH")
+			if metadata != nil && metadata.NodeExtraCaCerts != "" {
+				logging.LogInfo("   export NODE_EXTRA_CA_CERTS=%s", metadata.NodeExtraCaCerts)
+			}
 			logging.LogInfo("")
 			logging.LogInfo("💡 Or use --set-env to set them automatically in your shell configuration")
 		}
@@ -294,7 +317,7 @@ func handleUse(sdkType, distribution, version string) error {
 	return nil
 }
 
-func configureEnvironment(sdkType, sdkPath string) error {
+func configureEnvironment(sdkType, sdkPath string, metadata *downloader.SDKMetadata) error {
 	// Find the appropriate RC file
 	rcFile, err := findRcFile()
 	if err != nil {
@@ -319,23 +342,45 @@ func configureEnvironment(sdkType, sdkPath string) error {
 
 	// Prepare the new lines
 	var envVar string
+	var newConfig string
 	if sdkType == "jdk" {
 		envVar = "JAVA_HOME"
+		newConfig = fmt.Sprintf("\n# Added by Strigo - %s configuration\nexport %s=%s\nexport PATH=$%s/bin:$PATH\n",
+			strings.ToUpper(sdkType), envVar, sdkPath, envVar)
 	} else if sdkType == "node" {
 		envVar = "NODE_HOME"
+		if metadata != nil && metadata.NodeExtraCaCerts != "" {
+			// Include NODE_EXTRA_CA_CERTS if configured
+			newConfig = fmt.Sprintf("\n# Added by Strigo - %s configuration\nexport %s=%s\nexport PATH=$%s/bin:$PATH\nexport NODE_EXTRA_CA_CERTS=%s\n",
+				strings.ToUpper(sdkType), envVar, sdkPath, envVar, metadata.NodeExtraCaCerts)
+		} else {
+			newConfig = fmt.Sprintf("\n# Added by Strigo - %s configuration\nexport %s=%s\nexport PATH=$%s/bin:$PATH\n",
+				strings.ToUpper(sdkType), envVar, sdkPath, envVar)
+		}
 	}
-
-	newConfig := fmt.Sprintf("\n# Added by Strigo - %s configuration\nexport %s=%s\nexport PATH=$%s/bin:$PATH\n",
-		strings.ToUpper(sdkType), envVar, sdkPath, envVar)
 
 	// Remove the old configuration if it exists
 	lines := strings.Split(string(content), "\n")
 	var newLines []string
+	inStrigoBlock := false
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
+		// If we find the Strigo comment
 		if strings.Contains(line, fmt.Sprintf("# Added by Strigo - %s configuration", strings.ToUpper(sdkType))) {
-			i += 2 // Skip next two lines
+			inStrigoBlock = true
 			continue
+		}
+		// Skip all export lines in the Strigo block
+		if inStrigoBlock {
+			if strings.HasPrefix(strings.TrimSpace(line), "export ") {
+				continue
+			} else if strings.TrimSpace(line) == "" {
+				// Empty line marks end of block
+				inStrigoBlock = false
+				continue
+			}
+			// If we encounter a non-export, non-empty line, block has ended
+			inStrigoBlock = false
 		}
 		newLines = append(newLines, line)
 	}
