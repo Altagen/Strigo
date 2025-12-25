@@ -31,7 +31,6 @@ CHANGELOG.md
 strigo-new
 
 # Test configs with temporary paths
-strigo-e2e-test.toml
 strigo-test.toml
 
 # Coverage files

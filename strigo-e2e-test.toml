@@ -4,8 +4,11 @@ sdk_install_dir = "/tmp/strigo-e2e-test-sdks"
 cache_dir = "/tmp/strigo-e2e-test-cache"
 keep_cache = false
 patterns_file = "strigo-patterns.toml"
-jdk_security_path = "lib/security/cacerts"
-system_cacerts_path = "/etc/ssl/certs/ca-certificates.crt"
+
+# Custom certificates with explicit aliases
+custom_certificates = [
+    { path = "/tmp/strigo-test-certs/test-cert.pem", alias = "strigo-test-ca" }
+]
 
 [sdk_types]
 jdk = {
